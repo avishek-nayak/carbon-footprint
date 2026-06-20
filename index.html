@@ -3,557 +3,1459 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Footmark — carbon footprint tracker</title>
+<meta name="description" content="Footmark helps you understand, track, and reduce your daily carbon footprint through simple actions and personalized insights.">
+<title>Footmark, carbon footprint tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+/* ============================================================
+   FOOTMARK, design tokens
+   A single source of truth for color, type, radius, spacing.
+   ============================================================ */
 :root{
-  --green-dark:#1a2e1a;
+  --green-dark:#16291a;
   --green-mid:#4caf72;
+  --green-deep:#2f7d52;
   --green-light:#e8f5ec;
   --canvas:#f7f5f0;
   --surface:#ffffff;
-  --border:#e2e0db;
-  --text-primary:#1a1a1a;
+  --border:#e4e2dc;
+  --text-primary:#191b19;
   --text-muted:#6b7c6b;
-  --text-on-dark:#b8cdb8;
-  --accent-amber:#f0c060;
-  --sidebar-w:clamp(260px, 24vw, 320px);
-  --r-md:8px;
-  --r-lg:12px;
+  --amber:#e9a93c;
+  --danger:#c0492f;
+
+  --r-sm:6px;
+  --r-md:9px;
+  --r-lg:13px;
   --pad-main:clamp(1rem, 3vw, 2rem);
+  --shadow:0 1px 2px rgba(20,30,20,0.04), 0 4px 16px rgba(20,30,20,0.03);
 }
-html,body{height:100%;font-family:'Inter',sans-serif;font-size:14px;color:var(--text-primary);background:var(--canvas)}
-a{color:inherit}
-input,select,button{font-family:inherit;font-size:14px}
 
-.layout{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh}
-
-.sidebar{background:var(--green-dark);color:#fff;padding:2rem 1.5rem;display:flex;flex-direction:column;gap:2rem;position:sticky;top:0;height:100vh;overflow-y:auto}
-.brand{display:flex;align-items:center;gap:12px}
-.brand-dot{width:14px;height:14px;border-radius:50%;background:var(--green-mid);flex-shrink:0}
-.brand-name{font-family:'DM Serif Display',serif;font-size:32px;font-weight:400;letter-spacing:-0.02em;line-height:1;color:#fff}
-
-.score-section{}
-.score-label{font-size:11px;letter-spacing:0.08em;color:var(--text-on-dark);text-transform:uppercase;margin-bottom:6px}
-.score-number{font-family:'DM Serif Display',serif;font-size:clamp(48px, 5.5vw, 72px);line-height:1;color:#fff}
-.score-unit{font-size:13px;color:var(--text-on-dark);margin-top:4px}
-.score-delta{font-size:13px;margin-top:8px;line-height:1.5;color:var(--text-on-dark)}
-.score-delta span{color:#fff;font-weight:500}
-
-.gauge-section{display:flex;flex-direction:column;gap:10px}
-.gauge-row{display:flex;flex-direction:column;gap:4px}
-.gauge-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--text-on-dark)}
-.gauge-track{height:6px;background:rgba(255,255,255,0.12);border-radius:99px;overflow:hidden}
-.gauge-fill{height:100%;border-radius:99px;transition:width 0.5s ease}
-.gauge-you .gauge-fill{background:var(--green-mid)}
-.gauge-global .gauge-fill{background:rgba(255,255,255,0.35);width:68%}
-
-.cat-breakdown{display:flex;flex-direction:column;gap:8px}
-.cat-row{display:flex;align-items:center;gap:10px}
-.cat-icon{width:28px;height:28px;border-radius:var(--r-md);background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.cat-icon svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-.cat-info{flex:1;min-width:0}
-.cat-name{font-size:12px;color:var(--text-on-dark);margin-bottom:3px}
-.cat-mini-track{height:3px;background:rgba(255,255,255,0.1);border-radius:99px;overflow:hidden}
-.cat-mini-fill{height:100%;background:var(--green-mid);border-radius:99px;transition:width 0.4s ease}
-.cat-kg{font-size:12px;font-weight:500;color:#fff;flex-shrink:0;min-width:44px;text-align:right}
-
-.paris-note{font-size:11px;color:var(--text-on-dark);line-height:1.5;padding-top:1rem;border-top:1px solid rgba(255,255,255,0.08)}
-.paris-note strong{color:var(--accent-amber)}
-
-.main{background:var(--canvas);padding:var(--pad-main);display:flex;flex-direction:column;gap:1.25rem;min-width:0}
-
-.page-header{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px}
-.page-title{font-size:clamp(16px, 2vw, 20px);font-weight:500}
-.page-date{font-size:13px;color:var(--text-muted)}
-
-.card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r-lg);padding:clamp(1rem, 2vw, 1.5rem)}
-.card-title{font-size:11px;font-weight:500;letter-spacing:0.07em;color:var(--text-muted);text-transform:uppercase;margin-bottom:1rem}
-
-.cat-cards-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.cat-log-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r-lg);padding:1rem;cursor:pointer;transition:border-color 0.15s,box-shadow 0.15s;display:flex;flex-direction:column;gap:10px}
-.cat-log-card:hover{border-color:var(--green-mid)}
-.cat-log-card.active{border-color:var(--green-mid);box-shadow:0 0 0 3px rgba(76,175,114,0.12)}
-.clc-header{display:flex;align-items:center;gap:8px}
-.clc-icon{width:28px;height:28px;border-radius:var(--r-md);background:var(--green-light);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.clc-icon svg{width:14px;height:14px;stroke:var(--green-dark);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-.clc-name{font-size:13px;font-weight:500}
-.field{display:flex;flex-direction:column;gap:5px}
-.field label{font-size:12px;color:var(--text-muted)}
-.field select,.field input{padding:8px 10px;background:var(--canvas);border:0.5px solid var(--border);border-radius:var(--r-md);color:var(--text-primary);transition:border-color 0.15s;appearance:none;-webkit-appearance:none;width:100%}
-.field select:focus,.field input:focus{outline:none;border-color:var(--green-mid)}
-.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7c6b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:26px}
-.clc-preview{font-size:13px;font-weight:500;color:var(--green-dark);background:var(--green-light);border-radius:var(--r-md);padding:6px 10px;text-align:center}
-.add-bar{display:flex;align-items:center;gap:12px;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r-lg);padding:12px 1rem}
-.add-bar-label{font-size:13px;color:var(--text-muted);flex:1}
-.add-bar-preview{font-size:14px;font-weight:500;color:var(--green-dark);white-space:nowrap}
-.add-btn{padding:10px 20px;background:var(--green-dark);color:#fff;border:none;border-radius:var(--r-md);font-weight:500;cursor:pointer;transition:opacity 0.15s;white-space:nowrap;font-size:14px}
-.add-btn:hover{opacity:0.88}
-.add-btn:active{opacity:0.75}
-
-.history-list{display:flex;flex-direction:column;gap:6px;margin-top:1rem}
-.empty{font-size:13px;color:var(--text-muted);padding:8px 0}
-.h-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--canvas);border-radius:var(--r-md)}
-.h-icon-wrap{width:30px;height:30px;border-radius:var(--r-md);background:var(--green-light);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.h-icon-wrap svg{width:14px;height:14px;stroke:var(--green-dark);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-.h-body{flex:1;min-width:0}
-.h-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.h-sub{font-size:11px;color:var(--text-muted);margin-top:1px}
-.h-kg{font-size:13px;font-weight:500;flex-shrink:0}
-.del-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;border-radius:var(--r-md);display:flex;align-items:center;transition:color 0.15s}
-.del-btn:hover{color:#c0392b}
-.del-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-
-.insights-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
-.i-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r-lg);padding:1rem}
-.i-tag{display:inline-block;font-size:11px;font-weight:500;padding:3px 9px;border-radius:var(--r-md);margin-bottom:8px}
-.i-tag.on-track{background:#e8f5ec;color:#1a5c2a}
-.i-tag.above{background:#fef3e2;color:#7c4a00}
-.i-tag.info{background:#e8f0fe;color:#1a3a7c}
-.i-tag.neutral{background:#f0ede8;color:#3a3530}
-.i-text{font-size:13px;color:var(--text-primary);line-height:1.55}
-
-@media(max-width:960px){
-  :root{--sidebar-w:240px}
-  .sidebar{padding:1.5rem 1.25rem;gap:1.5rem}
-  .brand-name{font-size:26px}
-  .cat-cards-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.5;
+  color:var(--text-primary);background:var(--canvas);-webkit-font-smoothing:antialiased;
 }
-@media(max-width:768px){
-  .layout{grid-template-columns:1fr;grid-template-rows:auto 1fr}
-  .sidebar{position:static;height:auto;padding:1.25rem;gap:1.25rem;display:grid;grid-template-columns:auto 1fr;grid-template-areas:"brand score" "gauges gauges" "cats cats" "note note";align-items:start;column-gap:1.5rem}
-  .brand{grid-area:brand;align-self:center}
-  .score-section{grid-area:score;text-align:right}
-  .gauge-section{grid-area:gauges}
-  .cat-breakdown{grid-area:cats;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-  .cat-row{flex-direction:column;align-items:flex-start;gap:6px}
-  .cat-info{width:100%}
-  .cat-mini-track{width:100%}
-  .cat-kg{align-self:flex-start;min-width:0}
-  .paris-note{grid-area:note}
-  .brand-name{font-size:30px}
-  .cat-cards-row{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .add-bar{flex-wrap:wrap}
-  .add-bar-label{flex-basis:100%}
+input,select,button,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--green-deep);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.001ms!important;transition-duration:0.001ms!important}}
+
+.layout{min-height:100vh}
+
+/* ============================================================
+   Top bar, brand and day level actions
+   ============================================================ */
+.topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.brand{display:flex;align-items:center;gap:11px}
+.brand-mark{width:30px;height:30px;flex-shrink:0}
+.brand-name{font-family:'DM Serif Display',serif;font-size:30px;letter-spacing:-0.02em;line-height:1;color:var(--green-dark)}
+.brand-text{display:flex;flex-direction:column;gap:3px}
+.brand-tag{font-size:12px;color:var(--text-muted);max-width:42ch}
+.topbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.topbar-date{font-size:13px;color:var(--text-muted);margin-right:4px}
+
+/* ============================================================
+   Hero band, the day at a glance, pie plus streak plus delta
+   ============================================================ */
+.hero{display:grid;grid-template-columns:auto 1fr auto;gap:clamp(1rem,3vw,2rem);align-items:center}
+.hero-chart{display:flex;align-items:center;justify-content:center;position:relative}
+.donut{position:relative;width:148px;height:148px}
+.donut svg{display:block;transform:rotate(-90deg)}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.donut-num{font-family:'DM Serif Display',serif;font-size:34px;line-height:1;color:var(--green-dark)}
+.donut-unit{font-size:10px;color:var(--text-muted);margin-top:3px;letter-spacing:0.05em}
+
+.hero-legend{display:flex;flex-direction:column;gap:8px;min-width:0}
+.legend-row{display:flex;align-items:center;gap:9px}
+.legend-dot{width:11px;height:11px;border-radius:3px;flex-shrink:0}
+.legend-name{font-size:13px;color:var(--text-primary);flex:1}
+.legend-kg{font-size:13px;font-weight:600;color:var(--text-primary);font-variant-numeric:tabular-nums}
+.legend-pct{font-size:11px;color:var(--text-muted);min-width:34px;text-align:right;font-variant-numeric:tabular-nums}
+.legend-empty{font-size:13px;color:var(--text-muted)}
+
+.hero-side{display:flex;flex-direction:column;gap:10px;min-width:172px}
+.streak-tile{display:flex;align-items:center;gap:11px;background:linear-gradient(135deg,#fff5e6,#ffe9cc);
+  border:1px solid #f3d9aa;border-radius:var(--r-md);padding:12px 14px}
+.streak-flames{display:flex;align-items:center;flex-shrink:0}
+.streak-flames svg{width:22px;height:22px;margin-left:-9px;filter:drop-shadow(0 1px 1px rgba(180,90,0,0.25))}
+.streak-flames svg:first-child{margin-left:0}
+.flame-hot{color:#f0820f}.flame-mid{color:#f5a623}.flame-low{color:#f7c948}.flame-off{color:#d9d4cc}
+.streak-text{font-size:13px;line-height:1.35;color:#7a4a00}
+.streak-text strong{font-weight:700;color:#9a4f00}
+.streak-text.none{color:var(--text-muted)}
+.delta-tile{font-size:13px;line-height:1.4;color:var(--text-muted);background:var(--canvas);
+  border-radius:var(--r-md);padding:12px 14px}
+.delta-tile strong{font-weight:600}
+.delta-tile.good strong{color:var(--green-deep)}
+.delta-tile.over strong{color:var(--amber)}
+.delta-bar{height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin-top:8px}
+.delta-fill{height:100%;border-radius:99px;background:var(--green-mid);transition:width .5s ease,background .4s}
+
+/* ============================================================
+   Main column
+   ============================================================ */
+.main{height:100vh;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* Fixed head holds the logo bar and the pie chart band. The region
+   below it owns the scroll, so the day summary stays in view. */
+.app-head{flex:0 0 auto;display:flex;flex-direction:column;gap:1.1rem;
+  padding:var(--pad-main) var(--pad-main) 1.1rem;background:var(--canvas);
+  border-bottom:1px solid var(--border);box-shadow:0 8px 14px -12px rgba(20,30,20,0.18);z-index:5}
+.scroll-area{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;
+  gap:1.1rem;padding:1.1rem var(--pad-main) var(--pad-main)}
+.ghost-btn{background:none;border:1px solid var(--border);border-radius:var(--r-md);padding:7px 13px;font-size:12.5px;color:var(--text-muted);transition:border-color .15s,color .15s}
+.ghost-btn:hover{border-color:var(--green-deep);color:var(--green-deep)}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:clamp(1rem,2vw,1.4rem);box-shadow:var(--shadow)}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:1rem}
+.card-title{font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--text-muted)}
+
+.target-edit{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.target-edit label{font-size:13px;color:var(--text-muted)}
+.target-input{width:88px;padding:7px 10px;background:var(--canvas);border:1px solid var(--border);border-radius:var(--r-md);text-align:right;font-variant-numeric:tabular-nums}
+.target-input:focus{outline:none;border-color:var(--green-deep)}
+
+/* ============================================================
+   Log sections, one stacked block per category
+   ============================================================ */
+.sections{display:flex;flex-direction:column;gap:1.1rem}
+.section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:clamp(1rem,2vw,1.4rem);box-shadow:var(--shadow);transition:border-color .15s}
+.section:focus-within{border-color:var(--green-mid)}
+.section-head{display:flex;align-items:center;gap:10px;margin-bottom:1rem}
+.section-icon{width:32px;height:32px;border-radius:var(--r-md);background:var(--green-light);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.section-icon svg{width:16px;height:16px;stroke:var(--green-dark);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.section-title{font-size:15px;font-weight:600}
+.section-hint{font-size:12px;color:var(--text-muted);margin-left:auto;text-align:right}
+
+.section-body{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:6px;flex:1 1 170px;min-width:0}
+.field.grow{flex-basis:240px}
+.field label,.legend{font-size:12px;color:var(--text-muted)}
+.field select,.field input,.field textarea{padding:9px 11px;background:var(--canvas);border:1px solid var(--border);border-radius:var(--r-md);width:100%;appearance:none;-webkit-appearance:none;transition:border-color .15s}
+.field select:focus,.field input:focus,.field textarea:focus{outline:none;border-color:var(--green-deep)}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7c6b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;padding-right:26px}
+
+.section-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;flex-wrap:wrap}
+.section-preview{font-size:14px;color:var(--text-muted);min-width:0}
+.section-preview strong{color:var(--green-deep);font-weight:600;font-variant-numeric:tabular-nums}
+.add-btn{padding:10px 22px;background:var(--green-dark);color:#fff;border:none;border-radius:var(--r-md);font-weight:600;white-space:nowrap;transition:opacity .15s,transform .05s}
+.add-btn:hover{opacity:0.9}
+.add-btn:active{transform:translateY(1px)}
+.add-btn:disabled{opacity:0.4;cursor:not-allowed}
+
+/* Food matched chips */
+.chips{display:flex;flex-wrap:wrap;gap:6px;width:100%;margin-top:2px;min-height:4px}
+.chip{font-size:11.5px;font-weight:500;background:var(--green-light);color:var(--green-dark);border-radius:99px;padding:3px 10px}
+.chip span{color:var(--green-deep);font-variant-numeric:tabular-nums}
+
+/* Shopping checklist */
+.check-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;width:100%}
+.check{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--border);border-radius:var(--r-md);cursor:pointer;transition:border-color .12s,background .12s}
+.check:hover{border-color:var(--green-mid)}
+.check.checked{border-color:var(--green-mid);background:var(--green-light)}
+.check input{width:16px;height:16px;accent-color:var(--green-deep);flex-shrink:0;cursor:pointer}
+.check-name{font-size:13px}
+.check-kg{margin-left:auto;font-size:11px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+
+/* Online or offline toggle */
+.where{display:flex;flex-direction:column;gap:8px;width:100%;margin-top:14px}
+.toggle{display:inline-flex;border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;width:max-content}
+.toggle label{padding:9px 18px;font-size:13px;cursor:pointer;transition:background .12s,color .12s}
+.toggle label.on{background:var(--green-dark);color:#fff}
+.toggle input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.toggle input:focus-visible + label{outline:2px solid var(--green-deep);outline-offset:-2px}
+.where-detail{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;width:100%}
+.where-note{font-size:12.5px;color:var(--text-muted);background:var(--canvas);border-radius:var(--r-md);padding:9px 12px;line-height:1.5;width:100%}
+
+/* Small utilities, kept as classes so the markup carries no inline styles. */
+.field-note{font-size:13px;color:var(--text-muted)}
+.field-full{flex-basis:100%}
+.fieldset-bare{border:none}
+legend.legend{margin-bottom:8px}
+.solar-check{display:flex;align-items:center;gap:9px;cursor:pointer;font-size:13px;color:var(--text-primary)}
+.solar-check input{width:16px;height:16px;accent-color:var(--green-deep)}
+
+/* Today's entries */
+.entries{display:flex;flex-direction:column;gap:6px}
+.empty{font-size:13px;color:var(--text-muted);padding:6px 0}
+.link-btn{background:none;border:none;padding:0;color:var(--green-deep);text-decoration:underline;cursor:pointer;font-size:inherit}
+.page-foot{font-size:11.5px;color:var(--text-muted);line-height:1.6;padding:0.25rem 0 0.5rem;max-width:70ch}
+.entry{display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--canvas);border-radius:var(--r-md)}
+.entry-icon{width:29px;height:29px;border-radius:var(--r-sm);background:var(--green-light);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.entry-icon svg{width:14px;height:14px;stroke:var(--green-dark);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.entry-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.entry-pills{display:flex;flex-wrap:wrap;gap:5px}
+.entry-pill{font-size:11px;font-weight:500;background:var(--green-light);color:var(--green-dark);border-radius:99px;padding:2px 9px}
+.entry-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.entry-sub{font-size:11px;color:var(--text-muted)}
+.entry-kg{font-size:13px;font-weight:600;flex-shrink:0;font-variant-numeric:tabular-nums}
+.del-btn{background:none;border:none;color:var(--text-muted);padding:5px;border-radius:var(--r-sm);display:flex;transition:color .15s,background .15s}
+.del-btn:hover{color:var(--danger);background:rgba(192,73,47,0.08)}
+.del-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+
+/* Seven day trend */
+.trend{display:flex;align-items:flex-end;gap:clamp(6px,2vw,16px);height:140px;padding-top:8px;position:relative}
+.trend-target{position:absolute;left:0;right:0;border-top:1px dashed var(--amber);pointer-events:none}
+.trend-target span{position:absolute;right:0;top:-16px;font-size:10px;color:var(--amber);background:var(--surface);padding:0 4px}
+.tbar{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;min-width:0}
+.tbar-fill{width:clamp(14px,60%,30px);background:var(--green-mid);border-radius:5px 5px 0 0;min-height:3px;transition:height 0.5s cubic-bezier(.4,0,.2,1)}
+.tbar.over .tbar-fill{background:var(--amber)}
+.tbar.empty-day .tbar-fill{background:var(--border)}
+.tbar-day{font-size:10.5px;color:var(--text-muted)}
+.tbar-day.is-today{color:var(--green-deep);font-weight:600}
+
+/* Insights */
+.insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.insight{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:1rem;box-shadow:var(--shadow)}
+.i-tag{display:inline-block;font-size:10.5px;font-weight:600;letter-spacing:0.03em;padding:3px 9px;border-radius:99px;margin-bottom:8px;text-transform:uppercase}
+.i-tag.good{background:#e2f1e8;color:#1a5c2a}
+.i-tag.warn{background:#fbeede;color:#8a5300}
+.i-tag.info{background:#e6eefb;color:#1a3a7c}
+.i-tag.neutral{background:#efece6;color:#3a3530}
+.i-text{font-size:13px;line-height:1.55}
+.i-text strong{font-weight:600}
+
+/* Test panel */
+.test-panel{display:none;background:#0f1a0f;color:#cfe6cf;border-radius:var(--r-lg);padding:1.25rem;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12.5px;line-height:1.7}
+.test-panel.show{display:block}
+.test-panel h2{font-family:inherit;font-size:13px;margin-bottom:10px;color:#fff}
+.test-pass{color:#7ee0a0}
+.test-fail{color:#ff8a7a}
+.test-summary{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.12);color:#fff}
+
+/* ============================================================
+   Accordion, native details/summary. Below 760px the sections
+   and review cards collapse. Above 760px they stay open and the
+   summary is inert, so the disclosure only acts on small screens.
+   ============================================================ */
+summary.section-head,summary.card-head{cursor:pointer;list-style:none}
+summary.section-head::-webkit-details-marker,summary.card-head::-webkit-details-marker{display:none}
+.acc-chevron{width:18px;height:18px;flex-shrink:0;color:var(--text-muted);transition:transform .2s ease}
+details[open] > summary .acc-chevron{transform:rotate(180deg)}
+details:not([open]) > summary.section-head,details:not([open]) > summary.card-head{margin-bottom:0}
+@media(min-width:761px){
+  summary.section-head,summary.card-head{cursor:default;pointer-events:none}
+  .acc-chevron{display:none}
+}
+
+@media(max-width:820px){
+  .hero{grid-template-columns:auto 1fr;gap:1.25rem}
+  .hero-side{grid-column:1 / -1;flex-direction:row;min-width:0}
+  .hero-side > *{flex:1}
+}
+@media(max-width:760px){
+  /* On small screens let the whole page scroll so the pinned head
+     does not eat the viewport. */
+  .main{height:auto;overflow:visible}
+  .scroll-area{overflow:visible}
 }
 @media(max-width:560px){
-  .sidebar{grid-template-columns:1fr;grid-template-areas:"brand" "score" "gauges" "cats" "note";row-gap:1rem}
-  .brand{justify-content:flex-start}
-  .score-section{text-align:left}
-  .cat-breakdown{grid-template-columns:repeat(2,1fr)}
-  .cat-cards-row{grid-template-columns:1fr}
-  .insights-grid{grid-template-columns:1fr}
-}
-@media(max-width:380px){
-  .cat-breakdown{grid-template-columns:1fr}
-  .brand-name{font-size:26px}
+  .hero{grid-template-columns:1fr;justify-items:center;text-align:center}
+  .hero-legend{width:100%;max-width:280px}
+  .hero-side{flex-direction:column;width:100%}
+  .insights{grid-template-columns:1fr}
+  .section-foot{flex-direction:column;align-items:stretch}
+  .add-btn{width:100%}
 }
 </style>
 </head>
 <body>
 <div class="layout">
 
-<aside class="sidebar">
-  <div class="brand">
-    <div class="brand-dot"></div>
-    <span class="brand-name">footmark</span>
-  </div>
-
-  <div class="score-section">
-    <p class="score-label">Today's footprint</p>
-    <p class="score-number" id="score-num">0.0</p>
-    <p class="score-unit">kg CO₂e</p>
-    <p class="score-delta" id="score-delta">Log an activity to begin.</p>
-  </div>
-
-  <div class="gauge-section">
-    <div class="gauge-row gauge-you">
-      <div class="gauge-meta">
-        <span>You</span>
-        <span id="gauge-you-val">0.0 kg</span>
-      </div>
-      <div class="gauge-track">
-        <div class="gauge-fill" id="gauge-you-fill" style="width:0%"></div>
-      </div>
-    </div>
-    <div class="gauge-row gauge-global">
-      <div class="gauge-meta">
-        <span>Global average</span>
-        <span>10.9 kg</span>
-      </div>
-      <div class="gauge-track">
-        <div class="gauge-fill"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="cat-breakdown">
-    <div class="cat-row" data-cat="transport">
-      <div class="cat-icon">
-        <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="11" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
-      </div>
-      <div class="cat-info">
-        <p class="cat-name">Transport</p>
-        <div class="cat-mini-track"><div class="cat-mini-fill" id="cmf-transport" style="width:0%"></div></div>
-      </div>
-      <p class="cat-kg" id="ckg-transport">0.0</p>
-    </div>
-    <div class="cat-row" data-cat="food">
-      <div class="cat-icon">
-        <svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
-      </div>
-      <div class="cat-info">
-        <p class="cat-name">Food</p>
-        <div class="cat-mini-track"><div class="cat-mini-fill" id="cmf-food" style="width:0%"></div></div>
-      </div>
-      <p class="cat-kg" id="ckg-food">0.0</p>
-    </div>
-    <div class="cat-row" data-cat="energy">
-      <div class="cat-icon">
-        <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-      </div>
-      <div class="cat-info">
-        <p class="cat-name">Energy</p>
-        <div class="cat-mini-track"><div class="cat-mini-fill" id="cmf-energy" style="width:0%"></div></div>
-      </div>
-      <p class="cat-kg" id="ckg-energy">0.0</p>
-    </div>
-    <div class="cat-row" data-cat="shopping">
-      <div class="cat-icon">
-        <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-      </div>
-      <div class="cat-info">
-        <p class="cat-name">Shopping</p>
-        <div class="cat-mini-track"><div class="cat-mini-fill" id="cmf-shopping" style="width:0%"></div></div>
-      </div>
-      <p class="cat-kg" id="ckg-shopping">0.0</p>
-    </div>
-  </div>
-
-  <p class="paris-note">The Paris Agreement implies <strong>&lt;2.5 kg</strong> per person per day by 2050 to limit warming to 1.5°C.</p>
-</aside>
-
-<main class="main">
-  <div class="page-header">
-    <p class="page-title">Daily log</p>
-    <p class="page-date" id="page-date"></p>
-  </div>
-
-  <div class="cat-cards-row" id="cat-cards-row">
-    <div class="cat-log-card active" data-cat="transport">
-      <div class="clc-header">
-        <div class="clc-icon">
-          <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="11" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+  <main class="main">
+    <div class="app-head">
+    <header class="topbar">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <circle cx="16" cy="16" r="15" fill="#4caf72" opacity="0.18"/>
+          <path d="M16 25c6-3 8-8 8-13 0-1.5-.3-3-.8-4.2C20 8 17 9.5 16 13c-1-3.5-4-5-7.2-5.2C8.3 9 8 10.5 8 12c0 5 2 10 8 13Z" fill="#4caf72"/>
+          <path d="M16 25V13" stroke="#16291a" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        <div class="brand-text">
+          <h1 class="brand-name">footmark</h1>
+          <p class="brand-tag">Understand, track, and reduce your daily carbon footprint.</p>
         </div>
-        <span class="clc-name">Transport</span>
       </div>
-      <div class="field">
-        <label>Activity</label>
-        <select class="clc-act" data-cat="transport"></select>
+      <div class="topbar-right">
+        <span class="topbar-date" id="page-date"></span>
+        <button class="ghost-btn" id="sample-btn" type="button">Load sample week</button>
+        <button class="ghost-btn" id="reset-btn" type="button">Reset all data</button>
       </div>
-      <div class="field">
-        <label class="clc-qty-label">Distance (km)</label>
-        <input type="number" class="clc-qty" min="0" step="1" value="10">
-      </div>
-      <div class="clc-preview">0.0 kg CO₂e</div>
-    </div>
+    </header>
 
-    <div class="cat-log-card" data-cat="food">
-      <div class="clc-header">
-        <div class="clc-icon">
-          <svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+    <section class="card hero" aria-label="Today at a glance">
+      <div class="hero-chart">
+        <div class="donut" id="donut" role="img" aria-label="Today's emissions by category">
+          <div class="donut-center">
+            <span class="donut-num" id="donut-num">0.0</span>
+            <span class="donut-unit">kg CO₂e</span>
+          </div>
         </div>
-        <span class="clc-name">Food</span>
       </div>
-      <div class="field">
-        <label>Activity</label>
-        <select class="clc-act" data-cat="food"></select>
+      <div class="hero-legend" id="hero-legend"></div>
+      <div class="hero-side">
+        <div class="streak-tile" id="streak-tile" aria-live="polite"></div>
+        <div class="delta-tile" id="hero-delta" aria-live="polite"></div>
       </div>
-      <div class="field">
-        <label class="clc-qty-label">Meal(s)</label>
-        <input type="number" class="clc-qty" min="0" step="1" value="1">
+    </section>
+    </div><!-- /.app-head -->
+
+    <div class="scroll-area">
+    <div class="card">
+      <div class="card-head"><h2 class="card-title">Your daily target</h2></div>
+      <div class="target-edit">
+        <label for="target-input">Aim to stay under</label>
+        <input class="target-input" id="target-input" type="number" min="1" max="50" step="0.5" inputmode="decimal">
+        <span class="field-note">kg CO₂e per day</span>
       </div>
-      <div class="clc-preview">0.0 kg CO₂e</div>
     </div>
 
-    <div class="cat-log-card" data-cat="energy">
-      <div class="clc-header">
-        <div class="clc-icon">
-          <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        </div>
-        <span class="clc-name">Energy</span>
-      </div>
-      <div class="field">
-        <label>Activity</label>
-        <select class="clc-act" data-cat="energy"></select>
-      </div>
-      <div class="field">
-        <label class="clc-qty-label">kWh</label>
-        <input type="number" class="clc-qty" min="0" step="1" value="5">
-      </div>
-      <div class="clc-preview">0.0 kg CO₂e</div>
-    </div>
+    <div class="sections" id="sections"></div>
 
-    <div class="cat-log-card" data-cat="shopping">
-      <div class="clc-header">
-        <div class="clc-icon">
-          <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-        </div>
-        <span class="clc-name">Shopping</span>
-      </div>
-      <div class="field">
-        <label>Activity</label>
-        <select class="clc-act" data-cat="shopping"></select>
-      </div>
-      <div class="field">
-        <label class="clc-qty-label">Item(s)</label>
-        <input type="number" class="clc-qty" min="0" step="1" value="1">
-      </div>
-      <div class="clc-preview">0.0 kg CO₂e</div>
-    </div>
-  </div>
+    <details class="card acc" open>
+      <summary class="card-head"><h2 class="card-title">Today's entries</h2><svg class="acc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></summary>
+      <div class="entries" id="entries"></div>
+    </details>
 
-  <div class="add-bar">
-    <span class="add-bar-label">Adding: <span id="add-bar-summary">select a card above</span></span>
-    <span class="add-bar-preview" id="add-bar-kg"></span>
-    <button class="add-btn" id="add-btn">Add to today</button>
-  </div>
-  <div class="card">
-    <p class="card-title">Today's entries</p>
-    <div class="history-list" id="history-list">
-      <p class="empty">No activities logged yet.</p>
-    </div>
-  </div>
+    <details class="card acc" open>
+      <summary class="card-head"><h2 class="card-title">Last 7 days</h2><svg class="acc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></summary>
+      <div class="trend" id="trend" role="img" aria-label="Bar chart of total emissions for each of the last seven days"></div>
+    </details>
 
-  <div class="card">
-    <p class="card-title">Insights</p>
-    <div class="insights-grid" id="insights-grid"></div>
-  </div>
-</main>
+    <details class="card acc" open>
+      <summary class="card-head"><h2 class="card-title">Personalized insights</h2><svg class="acc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></summary>
+      <div class="insights" id="insights" aria-live="polite"></div>
+    </details>
+
+    <section class="test-panel" id="test-panel" aria-label="Test results">
+      <h2>Footmark test suite</h2>
+      <div id="test-output"></div>
+    </section>
+
+    <footer class="page-foot">
+      The Paris 1.5°C pathway implies under 2.5 kg CO₂e per person per day by 2050, against today's global average near 10.9 kg. Emission factors here are rounded public estimates (CEA India grid, DEFRA, Our World in Data) and are meant for guidance, not audit grade accounting.
+    </footer>
+    </div><!-- /.scroll-area -->
+  </main>
 
 </div>
+
 <script>
-const ACTS = {
-  transport:[
-    {name:"Car (petrol)",unit:"km",factor:0.21},
-    {name:"Car (diesel)",unit:"km",factor:0.17},
-    {name:"Car (electric)",unit:"km",factor:0.07},
-    {name:"Motorcycle",unit:"km",factor:0.11},
-    {name:"Bus",unit:"km",factor:0.09},
-    {name:"Train",unit:"km",factor:0.04},
-    {name:"Flight (short-haul)",unit:"km",factor:0.255},
-    {name:"Flight (long-haul)",unit:"km",factor:0.195},
-    {name:"Bicycle",unit:"km",factor:0.0}
-  ],
-  food:[
-    {name:"Beef meal",unit:"meal(s)",factor:6.6},
-    {name:"Lamb meal",unit:"meal(s)",factor:5.9},
-    {name:"Pork meal",unit:"meal(s)",factor:2.9},
-    {name:"Chicken meal",unit:"meal(s)",factor:1.7},
-    {name:"Fish meal",unit:"meal(s)",factor:1.2},
-    {name:"Vegetarian meal",unit:"meal(s)",factor:0.7},
-    {name:"Vegan meal",unit:"meal(s)",factor:0.4}
-  ],
-  energy:[
-    {name:"Electricity (grid avg)",unit:"kWh",factor:0.42},
-    {name:"Natural gas",unit:"kWh",factor:0.20},
-    {name:"Heating oil",unit:"litre(s)",factor:2.54},
-    {name:"Hot shower",unit:"minute(s)",factor:0.07}
-  ],
-  shopping:[
-    {name:"New t-shirt",unit:"item(s)",factor:5.5},
-    {name:"Jeans",unit:"item(s)",factor:33.4},
-    {name:"Smartphone",unit:"item(s)",factor:70.0},
-    {name:"Laptop",unit:"item(s)",factor:300.0},
-    {name:"Online delivery parcel",unit:"parcel(s)",factor:0.5}
-  ]
-};
+"use strict";
+/* ============================================================
+   FOOTMARK
+   A carbon footprint tracker built around three jobs from the
+   brief, to understand, to track, and to reduce, using simple
+   logged actions and insights drawn from the user's own data.
 
-const GLOBAL = 10.9;
-const TIPS = {
-  transport:"Switching to public transit or cycling for short trips can cut transport emissions by up to 70%.",
-  food:"Replacing one beef meal with a plant-based alternative saves around 6 kg CO₂e per day.",
-  energy:"Reducing shower time by 5 minutes saves roughly 0.35 kg CO₂e per day.",
-  shopping:"Buying second-hand or extending device lifetimes significantly cuts embodied carbon."
-};
+   The script is split into small single responsibility modules.
+   All calculation lives in CALC as pure functions so the TESTS
+   module at the bottom can verify behaviour in isolation.
+   ============================================================ */
 
-let entries = [];
-let activeCat = 'transport';
+/* ------------------------------------------------------------
+   CONFIG and reference data
+   Emission factors are in kg CO2e per unit of the activity.
+   Values are rounded reference figures from public datasets
+   (UK DEFRA conversion factors and Our World in Data). They are
+   approximations chosen to be directionally honest.
+   ------------------------------------------------------------ */
+const CONFIG = Object.freeze({
+  GLOBAL_DAILY_AVG: 10.9,
+  PARIS_DAILY_TARGET: 2.5,
+  DEFAULT_TARGET: 6.0,
+  TREE_ANNUAL_UPTAKE: 21,
+  PETROL_CAR_FACTOR: 0.21,
+  ONLINE_DELIVERY: 0.5,   // kg CO2e per order, last mile parcel
+  ONLINE_DIGITAL: 0.05,   // kg CO2e per order, browsing data and servers
+  INDIA_GRID_FACTOR: 0.71, // kg CO2e per kWh, CEA India average grid factor
+  STORAGE_KEY: "footmark.v3",
+});
 
-const historyList = document.getElementById('history-list');
-const insightsGrid = document.getElementById('insights-grid');
-const scoreNum = document.getElementById('score-num');
-const scoreDelta = document.getElementById('score-delta');
-const gaugeYouFill = document.getElementById('gauge-you-fill');
-const gaugeYouVal = document.getElementById('gauge-you-val');
-const addBtn = document.getElementById('add-btn');
-const addBarSummary = document.getElementById('add-bar-summary');
-const addBarKg = document.getElementById('add-bar-kg');
+const CATEGORY_ORDER = Object.freeze(["transport", "food", "energy", "shopping"]);
 
-function fmt(n){ return parseFloat(n.toFixed(1)); }
+const CATEGORY_META = Object.freeze({
+  transport: { label: "Transport" },
+  food:      { label: "Food" },
+  energy:    { label: "Energy" },
+  shopping:  { label: "Shopping" },
+});
 
-function getCard(cat){ return document.querySelector(`.cat-log-card[data-cat="${cat}"]`); }
-function getActSel(cat){ return getCard(cat).querySelector('.clc-act'); }
-function getQtyInp(cat){ return getCard(cat).querySelector('.clc-qty'); }
-function getPreview(cat){ return getCard(cat).querySelector('.clc-preview'); }
-function getQtyLabel(cat){ return getCard(cat).querySelector('.clc-qty-label'); }
+/** Distinct colors for each category, used by the donut and legend. */
+const CATEGORY_COLORS = Object.freeze({
+  transport: "#4caf72",
+  food:      "#e9a93c",
+  energy:    "#3f7d8c",
+  shopping:  "#b5733f",
+});
 
-function computeKg(cat){
-  const act = ACTS[cat][+getActSel(cat).value];
-  const qty = parseFloat(getQtyInp(cat).value) || 0;
-  return fmt(act.factor * qty);
-}
+/** Transport options, factor is kg CO2e per km. */
+const TRANSPORT = Object.freeze([
+  { name: "Car (petrol)",        factor: 0.21 },
+  { name: "Car (diesel)",        factor: 0.17 },
+  { name: "Car (electric)",      factor: 0.07 },
+  { name: "Motorcycle",          factor: 0.11 },
+  { name: "Bus",                 factor: 0.09 },
+  { name: "Train",               factor: 0.04 },
+  { name: "Flight (short haul)", factor: 0.255 },
+  { name: "Flight (long haul)",  factor: 0.195 },
+  { name: "Bicycle",             factor: 0.0 },
+]);
 
-function refreshCard(cat){
-  const act = ACTS[cat][+getActSel(cat).value];
-  getQtyLabel(cat).textContent = act.unit.charAt(0).toUpperCase() + act.unit.slice(1);
-  const kg = computeKg(cat);
-  getPreview(cat).textContent = kg.toFixed(1) + ' kg CO₂e';
-  if(cat === activeCat) refreshAddBar();
-}
+/* Energy is grid electricity only for an Indian household. The grid
+   factor lives in CONFIG.INDIA_GRID_FACTOR. Rooftop solar offsets the
+   grid share, which is handled by Calc.energyEmissions below. */
 
-function refreshAddBar(){
-  const act = ACTS[activeCat][+getActSel(activeCat).value];
-  const qty = parseFloat(getQtyInp(activeCat).value) || 0;
-  const kg = computeKg(activeCat);
-  addBarSummary.textContent = `${act.name}, ${qty} ${act.unit}`;
-  addBarKg.textContent = kg.toFixed(1) + ' kg CO₂e';
-}
+/**
+ * Food keyword database. The user types what they ate in plain
+ * words. Each matched entry contributes one serving of carbon and
+ * calories. Carbon is driven by food type, calories are shown
+ * alongside as a separate estimate rather than derived from carbon.
+ * kg is kg CO2e per serving, cal is kilocalories per serving.
+ */
+const FOOD_DB = Object.freeze([
+  { keys: ["beef", "steak", "burger", "mince"],                 name: "Beef",       kg: 6.6, cal: 500 },
+  { keys: ["lamb", "mutton"],                                   name: "Lamb",       kg: 5.9, cal: 450 },
+  { keys: ["pork", "bacon", "ham", "sausage"],                  name: "Pork",       kg: 2.9, cal: 400 },
+  { keys: ["chicken", "poultry", "turkey"],                     name: "Chicken",    kg: 1.7, cal: 350 },
+  { keys: ["fish", "salmon", "tuna", "prawn", "shrimp", "seafood"], name: "Fish",   kg: 1.2, cal: 300 },
+  { keys: ["cheese", "paneer"],                                 name: "Cheese",     kg: 2.5, cal: 400 },
+  { keys: ["egg"],                                              name: "Eggs",       kg: 0.9, cal: 150 },
+  { keys: ["milk", "yogurt", "yoghurt", "curd", "butter"],      name: "Dairy",      kg: 0.6, cal: 120 },
+  { keys: ["rice", "biryani"],                                  name: "Rice",       kg: 0.9, cal: 250 },
+  { keys: ["pasta", "noodle", "spaghetti"],                     name: "Pasta",      kg: 0.7, cal: 350 },
+  { keys: ["bread", "toast", "sandwich", "roti", "chapati", "naan"], name: "Bread", kg: 0.5, cal: 250 },
+  { keys: ["pizza"],                                            name: "Pizza",      kg: 1.6, cal: 700 },
+  { keys: ["potato", "fries", "chips", "aloo"],                 name: "Potato",     kg: 0.5, cal: 300 },
+  { keys: ["lentil", "dal", "dhal", "bean", "chickpea", "tofu"],name: "Legumes",    kg: 0.4, cal: 250 },
+  { keys: ["salad", "vegetable", "veggie", "broccoli", "spinach"], name: "Vegetables", kg: 0.4, cal: 150 },
+  { keys: ["fruit", "apple", "banana", "orange", "mango"],      name: "Fruit",      kg: 0.3, cal: 100 },
+  { keys: ["coffee", "latte", "cappuccino"],                    name: "Coffee",     kg: 0.4, cal: 50 },
+  { keys: ["tea", "chai"],                                      name: "Tea",        kg: 0.2, cal: 40 },
+  { keys: ["chocolate", "cocoa"],                               name: "Chocolate",  kg: 1.9, cal: 250 },
+]);
+const FOOD_DEFAULT = Object.freeze({ name: "Mixed meal", kg: 1.0, cal: 350 });
 
-function setActive(cat){
-  document.querySelectorAll('.cat-log-card').forEach(c => c.classList.remove('active'));
-  getCard(cat).classList.add('active');
-  activeCat = cat;
-  refreshAddBar();
-}
+/** Shopping items, kg is embodied kg CO2e per item. */
+const SHOPPING_ITEMS = Object.freeze([
+  { id: "tshirt",     name: "T-shirt",    kg: 5.5 },
+  { id: "jeans",      name: "Jeans",      kg: 33.4 },
+  { id: "shoes",      name: "Shoes",      kg: 14.0 },
+  { id: "dress",      name: "Dress",      kg: 22.0 },
+  { id: "phone",      name: "Smartphone", kg: 70.0 },
+  { id: "laptop",     name: "Laptop",     kg: 300.0 },
+  { id: "headphones", name: "Headphones", kg: 30.0 },
+  { id: "book",       name: "Book",       kg: 1.0 },
+  { id: "groceries",  name: "Groceries",  kg: 3.0 },
+]);
 
-function logEntry(){
-  const cat = activeCat;
-  const act = ACTS[cat][+getActSel(cat).value];
-  const qty = parseFloat(getQtyInp(cat).value) || 0;
-  if(qty <= 0) return;
-  entries.push({ id: Date.now(), cat, name: act.name, qty, unit: act.unit, kg: computeKg(cat) });
-  getQtyInp(cat).value = 1;
-  refreshCard(cat);
-  render();
-}
+/** Travel modes available when a purchase was made offline. */
+const SHOP_TRAVEL = Object.freeze([
+  { id: "walk",       name: "Walked",          factor: 0.0 },
+  { id: "bike",       name: "Cycled",          factor: 0.0 },
+  { id: "bus",        name: "Bus",             factor: 0.09 },
+  { id: "car",        name: "Car",             factor: 0.21 },
+  { id: "motorcycle", name: "Motorcycle",      factor: 0.11 },
+]);
 
-function removeEntry(id){
-  entries = entries.filter(e => e.id !== id);
-  render();
-}
+const TIPS = Object.freeze({
+  transport: "Swapping short car trips for cycling or transit can cut transport emissions by up to 70 percent.",
+  food: "Replacing one red meat serving with a plant based option saves several kg CO₂e.",
+  energy: "Trimming five minutes off a hot shower saves about 0.35 kg CO₂e a day.",
+  shopping: "Buying second hand or keeping devices longer sharply lowers embodied carbon.",
+});
 
-const CAT_SVG = {
-  transport:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="11" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>',
-  food:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',
-  energy:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
-  shopping:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>'
-};
+const ICONS = Object.freeze({
+  transport: '<rect x="2" y="7" width="20" height="11" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
+  food: '<path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>',
+  energy: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+  shopping: '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+});
 
-function render(){
-  const totals = { transport:0, food:0, energy:0, shopping:0 };
-  entries.forEach(e => { totals[e.cat] = fmt(totals[e.cat] + e.kg); });
-  const total = fmt(Object.values(totals).reduce((a,b) => a+b, 0));
+/* ------------------------------------------------------------
+   CALC
+   Pure functions only. No DOM, no storage. Fully covered by the
+   test suite, which is why every business rule lives here.
+   ------------------------------------------------------------ */
+const Calc = Object.freeze({
+  round1(value) { return Math.round(value * 10) / 10; },
 
-  scoreNum.textContent = total.toFixed(1);
-  gaugeYouVal.textContent = total.toFixed(1) + ' kg';
-  gaugeYouFill.style.width = Math.min((total / 16) * 100, 100) + '%';
+  /** Emissions for a factor based activity (transport). */
+  factorEmissions(factor, quantity) {
+    const qty = Number.isFinite(quantity) && quantity > 0 ? quantity : 0;
+    return Calc.round1(factor * qty);
+  },
 
-  if(total === 0){
-    scoreDelta.innerHTML = 'Log an activity to begin.';
-  } else {
-    const diff = fmt(total - GLOBAL);
-    if(diff < 0){
-      scoreDelta.innerHTML = `<span>${Math.abs(diff).toFixed(1)} kg</span> below the global daily average.`;
-    } else if(diff === 0){
-      scoreDelta.innerHTML = 'Right at the global daily average.';
+  /**
+   * Grid electricity emissions, with optional rooftop solar offset.
+   * Only the grid share is counted, since solar generation carries
+   * almost no operating emissions. Solar is capped at consumption so
+   * it can never push the footprint below zero.
+   * @param {Object} opts
+   * @param {number} opts.consumedKwh, total electricity used today
+   * @param {boolean} opts.hasSolar
+   * @param {number} opts.solarKwh, share of that supplied by solar
+   * @returns {{gridKwh:number, kg:number, avoidedKg:number}}
+   */
+  energyEmissions({ consumedKwh, hasSolar, solarKwh = 0 }) {
+    const consumed = Number.isFinite(consumedKwh) && consumedKwh > 0 ? consumedKwh : 0;
+    const solar = hasSolar && Number.isFinite(solarKwh) && solarKwh > 0
+      ? Math.min(solarKwh, consumed) : 0;
+    const gridKwh = consumed - solar;
+    return {
+      gridKwh: Calc.round1(gridKwh),
+      kg: Calc.round1(gridKwh * CONFIG.INDIA_GRID_FACTOR),
+      avoidedKg: Calc.round1(solar * CONFIG.INDIA_GRID_FACTOR),
+    };
+  },
+
+  /**
+   * Parse a free text meal into matched food components.
+   * @param {string} text
+   * @returns {{items:Array<{name,kg,cal}>, totalKg:number, totalCal:number}}
+   */
+  matchFood(text) {
+    const t = String(text || "").toLowerCase();
+    const items = [];
+    if (t.trim() !== "") {
+      for (const food of FOOD_DB) {
+        if (food.keys.some((k) => t.includes(k))) {
+          items.push({ name: food.name, kg: food.kg, cal: food.cal });
+        }
+      }
+      if (items.length === 0) items.push({ ...FOOD_DEFAULT });
+    }
+    const totalKg = Calc.round1(items.reduce((s, i) => s + i.kg, 0));
+    const totalCal = Math.round(items.reduce((s, i) => s + i.cal, 0));
+    return { items, totalKg, totalCal };
+  },
+
+  /**
+   * Total emissions for a shopping trip.
+   * @param {Object} opts
+   * @param {number} opts.itemsKg, summed embodied carbon of chosen items
+   * @param {boolean} opts.online
+   * @param {number} opts.travelFactor, kg CO2e per km for the chosen mode
+   * @param {number} opts.travelKm, round trip distance to the store
+   * @returns {number}
+   */
+  shoppingTotal({ itemsKg, online, travelFactor = 0, travelKm = 0 }) {
+    let kg = itemsKg;
+    if (online) {
+      kg += CONFIG.ONLINE_DELIVERY + CONFIG.ONLINE_DIGITAL;
     } else {
-      scoreDelta.innerHTML = `<span>${diff.toFixed(1)} kg</span> above the global daily average.`;
+      const km = Number.isFinite(travelKm) && travelKm > 0 ? travelKm : 0;
+      kg += travelFactor * km;
+    }
+    return Calc.round1(kg);
+  },
+
+  totalsByCategory(entries) {
+    const totals = { transport: 0, food: 0, energy: 0, shopping: 0 };
+    for (const entry of entries) if (entry.cat in totals) totals[entry.cat] += entry.kg;
+    for (const key of CATEGORY_ORDER) totals[key] = Calc.round1(totals[key]);
+    return totals;
+  },
+
+  dayTotal(entries) { return Calc.round1(entries.reduce((sum, e) => sum + e.kg, 0)); },
+
+  dayCalories(entries) {
+    return Math.round(entries.reduce((sum, e) => sum + (e.cal || 0), 0));
+  },
+
+  annualProjection(dailyKg) { return Math.round(dailyKg * 365); },
+
+  treesToOffset(annualKg) { return Math.max(0, Math.round(annualKg / CONFIG.TREE_ANNUAL_UPTAKE)); },
+
+  kmEquivalent(kg) { return Math.round(kg / CONFIG.PETROL_CAR_FACTOR); },
+
+  streak(days, target, todayKey) {
+    let count = 0;
+    const cursor = new Date(todayKey + "T00:00:00");
+    cursor.setDate(cursor.getDate() - 1);
+    for (let guard = 0; guard < 366; guard++) {
+      const key = cursor.toISOString().slice(0, 10);
+      const entries = days[key];
+      if (!entries || entries.length === 0) break;
+      if (Calc.dayTotal(entries) > target) break;
+      count++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    return count;
+  },
+
+  last7Days(days, todayKey) {
+    const out = [];
+    const base = new Date(todayKey + "T00:00:00");
+    for (let offset = 6; offset >= 0; offset--) {
+      const d = new Date(base);
+      d.setDate(d.getDate() - offset);
+      const key = d.toISOString().slice(0, 10);
+      const entries = days[key] || [];
+      out.push({
+        key,
+        label: d.toLocaleDateString("en-GB", { weekday: "short" }).charAt(0),
+        total: Calc.dayTotal(entries),
+        isToday: key === todayKey,
+        logged: entries.length > 0,
+      });
+    }
+    return out;
+  },
+
+  averageLoggedDay(days) {
+    const totals = Object.values(days).filter((e) => e.length > 0).map((e) => Calc.dayTotal(e));
+    if (totals.length === 0) return 0;
+    return Calc.round1(totals.reduce((a, b) => a + b, 0) / totals.length);
+  },
+});
+
+/* ------------------------------------------------------------
+   STORE
+   Owns persistence and in memory state, guarded so a private
+   context or a parse error never breaks the app.
+   ------------------------------------------------------------ */
+const Store = (() => {
+  const todayKey = () => new Date().toISOString().slice(0, 10);
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(CONFIG.STORAGE_KEY);
+      if (!raw) return { days: {}, target: CONFIG.DEFAULT_TARGET };
+      const parsed = JSON.parse(raw);
+      return {
+        days: parsed && typeof parsed.days === "object" ? parsed.days : {},
+        target: Number.isFinite(parsed.target) ? parsed.target : CONFIG.DEFAULT_TARGET,
+      };
+    } catch (err) {
+      console.warn("Footmark could not read saved data, starting fresh.", err);
+      return { days: {}, target: CONFIG.DEFAULT_TARGET };
     }
   }
 
-  const maxCat = Math.max(...Object.values(totals), 1);
-  ['transport','food','energy','shopping'].forEach(c => {
-    document.getElementById('ckg-' + c).textContent = totals[c].toFixed(1);
-    document.getElementById('cmf-' + c).style.width = Math.min((totals[c] / maxCat) * 100, 100) + '%';
-  });
+  let state = load();
 
-  if(entries.length === 0){
-    historyList.innerHTML = '<p class="empty">No activities logged yet.</p>';
-  } else {
-    historyList.innerHTML = [...entries].reverse().map(e =>
-      `<div class="h-item">
-        <div class="h-icon-wrap">${CAT_SVG[e.cat]}</div>
-        <div class="h-body">
-          <p class="h-name">${e.name}</p>
-          <p class="h-sub">${e.qty} ${e.unit}</p>
-        </div>
-        <p class="h-kg">${e.kg.toFixed(1)} kg</p>
-        <button class="del-btn" data-id="${e.id}" aria-label="Remove entry">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke-width="1.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>`
-    ).join('');
-    historyList.querySelectorAll('.del-btn').forEach(btn => {
-      btn.addEventListener('click', () => removeEntry(+btn.dataset.id));
+  function persist() {
+    try { localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(state)); }
+    catch (err) { console.warn("Footmark could not save data this session.", err); }
+  }
+
+  return {
+    todayKey,
+    getTarget: () => state.target,
+    getDays: () => state.days,
+    getToday: () => state.days[todayKey()] || [],
+    setTarget(value) { state.target = value; persist(); },
+    addEntry(entry) {
+      const key = todayKey();
+      if (!state.days[key]) state.days[key] = [];
+      state.days[key].push(entry);
+      persist();
+    },
+    removeEntry(id) {
+      const key = todayKey();
+      if (!state.days[key]) return;
+      state.days[key] = state.days[key].filter((e) => e.id !== id);
+      persist();
+    },
+    replaceDays(days) { state.days = days; persist(); },
+    clearAll() {
+      state = { days: {}, target: CONFIG.DEFAULT_TARGET };
+      try { localStorage.removeItem(CONFIG.STORAGE_KEY); }
+      catch (err) { console.warn("Footmark could not clear saved data.", err); }
+    },
+  };
+})();
+
+/* ------------------------------------------------------------
+   INSIGHTS
+   Pure. Turns the user's own numbers into short, specific notes.
+   ------------------------------------------------------------ */
+const Insights = Object.freeze({
+  build(ctx) {
+    const { todayTotal, totals, target, streakDays, avgDay, foodCal } = ctx;
+    const cards = [];
+
+    if (todayTotal === 0) {
+      cards.push({ tag: "neutral", label: "Start here", text: "Log your first activity to unlock insights drawn from your own footprint." });
+      return cards;
+    }
+
+    if (todayTotal <= target) {
+      cards.push({ tag: "good", label: "On target", text: `You are ${Calc.round1(target - todayTotal)} kg under your ${target} kg target today. That pace projects to about ${Calc.annualProjection(todayTotal).toLocaleString()} kg a year.` });
+    } else {
+      cards.push({ tag: "warn", label: "Over target", text: `You are ${Calc.round1(todayTotal - target)} kg over your ${target} kg target. Trimming that back is the fastest win available right now.` });
+    }
+
+    const top = Object.entries(totals).sort((a, b) => b[1] - a[1])[0];
+    if (top && top[1] > 0) {
+      const [cat, value] = top;
+      cards.push({ tag: "warn", label: `${CATEGORY_META[cat].label} leads`, text: `${CATEGORY_META[cat].label} is your largest source today at ${Calc.round1(value)} kg. ${TIPS[cat]}` });
+    }
+
+    if (foodCal > 0) {
+      cards.push({ tag: "info", label: "Meals today", text: `Your logged meals were about ${foodCal.toLocaleString()} kcal and ${Calc.round1(totals.food)} kg CO₂e. Calories and carbon move independently, the food type matters more than the energy.` });
+    }
+
+    cards.push({ tag: "info", label: "In context", text: `Today's ${todayTotal} kg is roughly the same as driving ${Calc.kmEquivalent(todayTotal).toLocaleString()} km in an average petrol car.` });
+
+    if (streakDays > 0) {
+      cards.push({ tag: "good", label: "Momentum", text: `You have stayed under target for ${streakDays} day${streakDays === 1 ? "" : "s"} running. Keep today under ${target} kg to extend it.` });
+    } else if (avgDay > 0) {
+      cards.push({ tag: "info", label: "Your average", text: `Across your logged days you average ${avgDay} kg. Offsetting a year at that rate would take about ${Calc.treesToOffset(Calc.annualProjection(avgDay))} trees.` });
+    }
+
+    return cards;
+  },
+});
+
+/* ------------------------------------------------------------
+   SAMPLE
+   A realistic past week so trend and streak can be seen at once.
+   User invoked, never written silently over real data.
+   ------------------------------------------------------------ */
+const Sample = Object.freeze({
+  build(todayKey) {
+    const days = {};
+    const recipe = [5.2, 7.8, 4.1, 9.3, 3.6, 6.0];
+    const base = new Date(todayKey + "T00:00:00");
+    for (let offset = 6; offset >= 1; offset--) {
+      const d = new Date(base);
+      d.setDate(d.getDate() - offset);
+      const key = d.toISOString().slice(0, 10);
+      days[key] = Sample.entriesFor(recipe[6 - offset], key);
+    }
+    return days;
+  },
+  entriesFor(targetKg, dateKey) {
+    const carKm = Math.max(1, Math.round((targetKg * 0.6) / 0.21));
+    const heavy = targetKg > 6;
+    return [
+      { id: `${dateKey}-a`, cat: "transport", name: "Car (petrol)", qty: carKm, unit: "km", kg: Calc.round1(carKm * 0.21) },
+      { id: `${dateKey}-b`, cat: "food", name: heavy ? "Beef" : "Vegetables", qty: 1, unit: "meal", kg: heavy ? 6.6 : 0.4, cal: heavy ? 500 : 150, parts: [heavy ? "Beef" : "Vegetables"] },
+    ];
+  },
+});
+
+/* ------------------------------------------------------------
+   UI
+   The only module that touches the DOM. Each category is a small
+   self contained section object with mount, refresh, and add.
+   ------------------------------------------------------------ */
+const UI = (() => {
+  const el = {};
+
+  const icon = (cat) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[cat]}</svg>`;
+  const CHEVRON = '<svg class="acc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
+  const $ = (id) => document.getElementById(id);
+
+  /* ---- Section, transport ---- */
+  const transportSection = {
+    cat: "transport",
+    html() {
+      const opts = TRANSPORT.map((t, i) => `<option value="${i}">${t.name}</option>`).join("");
+      return `
+        <details class="section acc" data-cat="transport" open>
+          <summary class="section-head">
+            <span class="section-icon">${icon("transport")}</span>
+            <span class="section-title">Transport</span>
+            ${CHEVRON}
+          </summary>
+          <div class="section-body">
+            <div class="field grow">
+              <label for="t-act">Mode</label>
+              <select id="t-act">${opts}</select>
+            </div>
+            <div class="field">
+              <label for="t-km">Distance (km)</label>
+              <input id="t-km" type="number" min="0" step="any" inputmode="decimal" value="10">
+            </div>
+          </div>
+          <div class="section-foot">
+            <span class="section-preview">Adds <strong id="t-prev">0.0 kg</strong></span>
+            <button class="add-btn" id="t-add" type="button">Add transport</button>
+          </div>
+        </details>`;
+    },
+    refresh() {
+      const factor = TRANSPORT[+$("t-act").value].factor;
+      const kg = Calc.factorEmissions(factor, parseFloat($("t-km").value));
+      $("t-prev").textContent = `${kg.toFixed(1)} kg CO₂e`;
+    },
+    add() {
+      const t = TRANSPORT[+$("t-act").value];
+      const qty = parseFloat($("t-km").value);
+      const kg = Calc.factorEmissions(t.factor, qty);
+      if (!(qty > 0)) return;
+      commit({ cat: "transport", name: t.name, qty, unit: "km", kg });
+    },
+    bind(root) {
+      root.addEventListener("input", () => this.refresh());
+      root.addEventListener("change", () => this.refresh());
+      $("t-add").addEventListener("click", () => this.add());
+    },
+  };
+
+  /* ---- Section, food, free text meal ---- */
+  const foodSection = {
+    cat: "food",
+    html() {
+      return `
+        <details class="section acc" data-cat="food" open>
+          <summary class="section-head">
+            <span class="section-icon">${icon("food")}</span>
+            <span class="section-title">Food</span>
+            <span class="section-hint">Type what you ate, in plain words</span>
+            ${CHEVRON}
+          </summary>
+          <div class="section-body">
+            <div class="field grow">
+              <label for="f-text">What did you eat?</label>
+              <input id="f-text" type="text" autocomplete="off" placeholder="e.g. chicken rice and salad">
+            </div>
+          </div>
+          <div class="chips" id="f-chips" aria-live="polite"></div>
+          <div class="section-foot">
+            <span class="section-preview">Adds <strong id="f-prev">0 kcal, 0.0 kg</strong></span>
+            <button class="add-btn" id="f-add" type="button" disabled>Add meal</button>
+          </div>
+        </details>`;
+    },
+    refresh() {
+      const result = Calc.matchFood($("f-text").value);
+      $("f-prev").textContent = `${result.totalCal.toLocaleString()} kcal, ${result.totalKg.toFixed(1)} kg CO₂e`;
+      $("f-add").disabled = result.items.length === 0;
+      const chips = $("f-chips");
+      const frag = document.createDocumentFragment();
+      for (const item of result.items) {
+        const c = document.createElement("span");
+        c.className = "chip";
+        c.innerHTML = `${item.name} <span>${item.kg.toFixed(1)} kg</span>`;
+        frag.appendChild(c);
+      }
+      chips.replaceChildren(frag);
+    },
+    add() {
+      const text = $("f-text").value.trim();
+      const result = Calc.matchFood(text);
+      if (result.items.length === 0) return;
+      const label = text.length > 42 ? text.slice(0, 42) + "..." : text;
+      commit({
+        cat: "food", name: label, qty: 1, unit: "meal",
+        kg: result.totalKg, cal: result.totalCal,
+        parts: result.items.map((i) => i.name),
+      });
+      $("f-text").value = "";
+      this.refresh();
+    },
+    bind(root) {
+      $("f-text").addEventListener("input", () => this.refresh());
+      $("f-text").addEventListener("keydown", (e) => { if (e.key === "Enter") this.add(); });
+      $("f-add").addEventListener("click", () => this.add());
+    },
+  };
+
+  /* ---- Section, energy, grid electricity with optional solar ---- */
+  const energySection = {
+    cat: "energy",
+    hasSolar: false,
+    html() {
+      return `
+        <details class="section acc" data-cat="energy" open>
+          <summary class="section-head">
+            <span class="section-icon">${icon("energy")}</span>
+            <span class="section-title">Energy</span>
+            <span class="section-hint">Grid electricity used today</span>
+            ${CHEVRON}
+          </summary>
+          <div class="section-body">
+            <div class="field">
+              <label for="e-kwh">Electricity used (kWh)</label>
+              <input id="e-kwh" type="number" min="0" step="any" inputmode="decimal" value="5">
+            </div>
+            <div class="field field-full">
+              <label for="e-solar" class="solar-check">
+                <input type="checkbox" id="e-solar">
+                I have rooftop solar
+              </label>
+            </div>
+          </div>
+          <div id="e-solar-detail"></div>
+          <div class="section-foot">
+            <span class="section-preview">Adds <strong id="e-prev">0.0 kg</strong></span>
+            <button class="add-btn" id="e-add" type="button">Add energy</button>
+          </div>
+        </details>`;
+    },
+    solarDetailHtml() {
+      if (!this.hasSolar) return "";
+      return `
+        <div class="where-detail">
+          <div class="field">
+            <label for="e-solar-kwh">Of that, supplied by solar (kWh)</label>
+            <input id="e-solar-kwh" type="number" min="0" step="any" inputmode="decimal" value="2">
+          </div>
+          <p class="where-note">Solar generation has almost no operating emissions, so only the grid share is counted. The more your panels cover, the lower today's footprint.</p>
+        </div>`;
+    },
+    read() {
+      const consumed = parseFloat($("e-kwh").value);
+      const solarEl = $("e-solar-kwh");
+      const solar = this.hasSolar && solarEl ? parseFloat(solarEl.value) : 0;
+      return {
+        consumed: Number.isFinite(consumed) ? consumed : 0,
+        solar: Number.isFinite(solar) ? solar : 0,
+      };
+    },
+    refresh() {
+      const { consumed, solar } = this.read();
+      const r = Calc.energyEmissions({ consumedKwh: consumed, hasSolar: this.hasSolar, solarKwh: solar });
+      $("e-prev").textContent = r.avoidedKg > 0
+        ? `${r.kg.toFixed(1)} kg CO₂e, solar avoided ${r.avoidedKg.toFixed(1)} kg`
+        : `${r.kg.toFixed(1)} kg CO₂e`;
+    },
+    renderSolar() {
+      $("e-solar-detail").innerHTML = this.solarDetailHtml();
+      this.refresh();
+    },
+    add() {
+      const { consumed, solar } = this.read();
+      if (!(consumed > 0)) return;
+      const r = Calc.energyEmissions({ consumedKwh: consumed, hasSolar: this.hasSolar, solarKwh: solar });
+      const name = this.hasSolar && r.avoidedKg > 0 ? "Grid electricity (with solar)" : "Grid electricity";
+      commit({ cat: "energy", name, qty: consumed, unit: "kWh", kg: r.kg });
+    },
+    bind(root) {
+      root.addEventListener("input", () => this.refresh());
+      root.addEventListener("change", (e) => {
+        if (e.target.id === "e-solar") { this.hasSolar = e.target.checked; this.renderSolar(); }
+        else this.refresh();
+      });
+      $("e-add").addEventListener("click", () => this.add());
+    },
+  };
+
+  /* ---- Section, shopping, multi check plus online or offline ---- */
+  const shoppingSection = {
+    cat: "shopping",
+    online: true,
+    html() {
+      const checks = SHOPPING_ITEMS.map((it) => `
+        <label class="check" data-id="${it.id}">
+          <input type="checkbox" value="${it.id}">
+          <span class="check-name">${it.name}</span>
+          <span class="check-kg">${it.kg} kg</span>
+        </label>`).join("");
+      return `
+        <details class="section acc" data-cat="shopping" open>
+          <summary class="section-head">
+            <span class="section-icon">${icon("shopping")}</span>
+            <span class="section-title">Shopping</span>
+            <span class="section-hint">Check everything you bought</span>
+            ${CHEVRON}
+          </summary>
+          <fieldset class="fieldset-bare">
+            <legend class="legend">Items</legend>
+            <div class="check-grid" id="s-items">${checks}</div>
+          </fieldset>
+          <div class="where">
+            <fieldset class="fieldset-bare">
+              <legend class="legend">Where did you buy?</legend>
+              <div class="toggle" id="s-toggle" role="radiogroup" aria-label="Purchase channel">
+                <input type="radio" name="s-where" id="s-online" value="online" checked>
+                <label for="s-online" class="on">Online</label>
+                <input type="radio" name="s-where" id="s-offline" value="offline">
+                <label for="s-offline">In store</label>
+              </div>
+            </fieldset>
+            <div id="s-detail"></div>
+          </div>
+          <div class="section-foot">
+            <span class="section-preview">Adds <strong id="s-prev">0.0 kg</strong></span>
+            <button class="add-btn" id="s-add" type="button" disabled>Add purchase</button>
+          </div>
+        </details>`;
+    },
+    detailHtml() {
+      if (this.online) {
+        return `<p class="where-note">An online order adds about <strong>${CONFIG.ONLINE_DELIVERY} kg</strong> for last mile delivery and <strong>${CONFIG.ONLINE_DIGITAL} kg</strong> for the browsing data and servers behind the order.</p>`;
+      }
+      const modes = SHOP_TRAVEL.map((m, i) => `<option value="${i}">${m.name}</option>`).join("");
+      return `
+        <div class="where-detail">
+          <div class="field">
+            <label for="s-mode">How did you get there?</label>
+            <select id="s-mode">${modes}</select>
+          </div>
+          <div class="field">
+            <label for="s-km">Round trip distance (km)</label>
+            <input id="s-km" type="number" min="0" step="any" inputmode="decimal" value="4">
+          </div>
+        </div>`;
+    },
+    checkedItems() {
+      return [...document.querySelectorAll('#s-items input:checked')]
+        .map((cb) => SHOPPING_ITEMS.find((it) => it.id === cb.value))
+        .filter(Boolean);
+    },
+    compute() {
+      const items = this.checkedItems();
+      const itemsKg = items.reduce((s, it) => s + it.kg, 0);
+      let travelFactor = 0, travelKm = 0;
+      if (!this.online) {
+        const modeEl = $("s-mode"), kmEl = $("s-km");
+        if (modeEl) travelFactor = SHOP_TRAVEL[+modeEl.value].factor;
+        if (kmEl) travelKm = parseFloat(kmEl.value) || 0;
+      }
+      const kg = Calc.shoppingTotal({ itemsKg, online: this.online, travelFactor, travelKm });
+      return { items, kg };
+    },
+    refresh() {
+      const { items, kg } = this.compute();
+      $("s-prev").textContent = `${kg.toFixed(1)} kg CO₂e`;
+      $("s-add").disabled = items.length === 0;
+      for (const label of document.querySelectorAll('#s-items .check')) {
+        label.classList.toggle("checked", label.querySelector("input").checked);
+      }
+    },
+    renderDetail() {
+      $("s-detail").innerHTML = this.detailHtml();
+      const toggle = $("s-toggle");
+      toggle.querySelector('label[for="s-online"]').classList.toggle("on", this.online);
+      toggle.querySelector('label[for="s-offline"]').classList.toggle("on", !this.online);
+      this.refresh();
+    },
+    add() {
+      const { items, kg } = this.compute();
+      if (items.length === 0) return;
+      const names = items.map((i) => i.name).join(", ");
+      const channel = this.online ? "online" : "in store";
+      commit({ cat: "shopping", name: `${names} (${channel})`, qty: items.length, unit: "item(s)", kg });
+      for (const cb of document.querySelectorAll('#s-items input:checked')) cb.checked = false;
+      this.refresh();
+    },
+    bind(root) {
+      root.addEventListener("change", (e) => {
+        if (e.target.name === "s-where") {
+          this.online = e.target.value === "online";
+          this.renderDetail();
+        } else {
+          this.refresh();
+        }
+      });
+      root.addEventListener("input", () => this.refresh());
+      $("s-add").addEventListener("click", () => this.add());
+      this.renderDetail();
+    },
+  };
+
+  const SECTIONS = [transportSection, foodSection, energySection, shoppingSection];
+
+  /** Shared, commit an entry and rerender. */
+  function commit(entry) {
+    Store.addEntry({ id: Date.now(), ...entry });
+    render();
+  }
+
+  function buildStaticStructure() {
+    el.sections.innerHTML = SECTIONS.map((s) => s.html()).join("");
+    for (const s of SECTIONS) {
+      const root = el.sections.querySelector(`.section[data-cat="${s.cat}"]`);
+      s.bind(root);
+      s.refresh();
+    }
+  }
+
+  /* ---- Rendering ---- */
+
+  /**
+   * Build the donut SVG string for the day's category split.
+   * Segments are proportional arcs laid end to end. With no data a
+   * neutral track ring is shown instead.
+   */
+  function donutSvg(totals, total) {
+    const size = 148, sw = 20, r = (size - sw) / 2, cx = size / 2;
+    const circ = 2 * Math.PI * r;
+    const track = `<circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="var(--border)" stroke-width="${sw}"/>`;
+    let offset = 0;
+    const segs = total > 0
+      ? CATEGORY_ORDER.filter((c) => totals[c] > 0).map((c) => {
+          const len = (totals[c] / total) * circ;
+          const seg = `<circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="${CATEGORY_COLORS[c]}" stroke-width="${sw}" stroke-dasharray="${len} ${circ - len}" stroke-dashoffset="${-offset}"/>`;
+          offset += len;
+          return seg;
+        }).join("")
+      : "";
+    return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" aria-hidden="true">${track}${segs}</svg>`;
+  }
+
+  function renderDonut(totals, todayTotal) {
+    // Keep the center overlay, swap only the SVG behind it.
+    const existing = el.donut.querySelector("svg");
+    if (existing) existing.remove();
+    el.donut.insertAdjacentHTML("afterbegin", donutSvg(totals, todayTotal));
+    el.donutNum.textContent = todayTotal.toFixed(1);
+    const summary = todayTotal > 0
+      ? CATEGORY_ORDER.filter((c) => totals[c] > 0).map((c) => `${CATEGORY_META[c].label} ${totals[c]} kg`).join(", ")
+      : "no activity logged yet";
+    el.donut.setAttribute("aria-label", `Today's emissions by category: ${summary}`);
+  }
+
+  function renderLegend(totals, todayTotal) {
+    if (todayTotal === 0) {
+      el.heroLegend.innerHTML = '<p class="legend-empty">Log an activity to see today\u2019s split by category.</p>';
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    for (const cat of CATEGORY_ORDER) {
+      if (totals[cat] <= 0) continue;
+      const pct = Math.round((totals[cat] / todayTotal) * 100);
+      const row = document.createElement("div");
+      row.className = "legend-row";
+      const dot = document.createElement("span");
+      dot.className = "legend-dot";
+      dot.style.background = CATEGORY_COLORS[cat];
+      const name = document.createElement("span");
+      name.className = "legend-name";
+      name.textContent = CATEGORY_META[cat].label;
+      const kg = document.createElement("span");
+      kg.className = "legend-kg";
+      kg.textContent = `${totals[cat].toFixed(1)} kg`;
+      const pctEl = document.createElement("span");
+      pctEl.className = "legend-pct";
+      pctEl.textContent = `${pct}%`;
+      row.append(dot, name, kg, pctEl);
+      frag.appendChild(row);
+    }
+    el.heroLegend.replaceChildren(frag);
+  }
+
+  /** A flame for each day of streak, up to three, hottest first. */
+  function renderStreak(streakDays, target) {
+    const flame = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c1 4-2 5-2 8a2 2 0 0 0 4 0c2 2 3 4 3 6a5 5 0 0 1-10 0c0-4 4-6 5-14Z"/></svg>';
+    const tile = el.streakTile;
+    if (streakDays > 0) {
+      const flameCount = Math.min(streakDays, 3);
+      const classes = ["flame-hot", "flame-mid", "flame-low"];
+      const flames = Array.from({ length: flameCount }, (_, i) => `<span class="${classes[i]}">${flame}</span>`).join("");
+      tile.innerHTML = `<span class="streak-flames">${flames}</span>
+        <span class="streak-text"><strong>${streakDays} day${streakDays === 1 ? "" : "s"}</strong> under target in a row. Keep it lit.</span>`;
+    } else {
+      tile.innerHTML = `<span class="streak-flames"><span class="flame-off">${flame}</span></span>
+        <span class="streak-text none">No streak yet. Stay under ${target} kg today to spark one.</span>`;
+    }
+  }
+
+  function renderDelta(todayTotal, target) {
+    const tile = el.heroDelta;
+    tile.classList.remove("good", "over");
+    const pct = target > 0 ? Math.min((todayTotal / target) * 100, 100) : 0;
+    let head;
+    if (todayTotal === 0) {
+      head = "Log an activity to begin.";
+    } else if (todayTotal <= target) {
+      tile.classList.add("good");
+      head = `<strong>${Calc.round1(target - todayTotal)} kg</strong> under your ${target} kg target.`;
+    } else {
+      tile.classList.add("over");
+      head = `<strong>${Calc.round1(todayTotal - target)} kg</strong> over your ${target} kg target.`;
+    }
+    const fillColor = todayTotal > target ? "var(--amber)" : "var(--green-mid)";
+    tile.innerHTML = `${head}<div class="delta-bar"><div class="delta-fill" style="width:${pct}%;background:${fillColor}"></div></div>`;
+  }
+
+  function renderEntries(entries) {
+    if (entries.length === 0) {
+      el.entries.innerHTML = '<p class="empty">No activities logged yet. <button type="button" id="empty-sample" class="link-btn">Load a sample week</button> to explore.</p>';
+      $("empty-sample").addEventListener("click", loadSample);
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    for (const entry of [...entries].reverse()) {
+      const row = document.createElement("div");
+      row.className = "entry";
+
+      const iconSpan = document.createElement("span");
+      iconSpan.className = "entry-icon";
+      iconSpan.innerHTML = icon(entry.cat);
+
+      const body = document.createElement("span");
+      body.className = "entry-body";
+
+      // Food entries show their matched components as pills. Everything
+      // else shows a single name line. All text goes through textContent.
+      if (entry.cat === "food" && Array.isArray(entry.parts) && entry.parts.length) {
+        const pills = document.createElement("span");
+        pills.className = "entry-pills";
+        for (const part of entry.parts) {
+          const pill = document.createElement("span");
+          pill.className = "entry-pill";
+          pill.textContent = part;
+          pills.appendChild(pill);
+        }
+        body.appendChild(pills);
+      } else {
+        const name = document.createElement("span");
+        name.className = "entry-name";
+        name.textContent = entry.name;
+        body.appendChild(name);
+      }
+
+      const sub = document.createElement("span");
+      sub.className = "entry-sub";
+      sub.textContent = entry.cat === "food" && entry.cal
+        ? `${entry.cal.toLocaleString()} kcal`
+        : `${entry.qty} ${entry.unit}`;
+      body.appendChild(sub);
+
+      const kg = document.createElement("span");
+      kg.className = "entry-kg";
+      kg.textContent = `${entry.kg.toFixed(1)} kg`;
+
+      const del = document.createElement("button");
+      del.className = "del-btn";
+      del.type = "button";
+      del.dataset.id = entry.id;
+      del.setAttribute("aria-label", "Remove entry");
+      del.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+      row.append(iconSpan, body, kg, del);
+      frag.appendChild(row);
+    }
+    el.entries.replaceChildren(frag);
+  }
+
+  function renderTrend(week, target) {
+    const max = Math.max(...week.map((d) => d.total), target, 1);
+    const frag = document.createDocumentFragment();
+    for (const day of week) {
+      const bar = document.createElement("div");
+      bar.className = "tbar";
+      if (!day.logged) bar.classList.add("empty-day");
+      else if (day.total > target) bar.classList.add("over");
+      const heightPct = day.logged ? Math.max((day.total / max) * 100, 3) : 3;
+      bar.innerHTML = `<span class="tbar-fill" style="height:${heightPct}%"></span><span class="tbar-day${day.isToday ? " is-today" : ""}">${day.label}</span>`;
+      frag.appendChild(bar);
+    }
+    el.trend.replaceChildren(frag);
+    const line = document.createElement("div");
+    line.className = "trend-target";
+    line.style.bottom = `calc(${(target / max) * 100}% + 22px)`;
+    line.innerHTML = `<span>target ${target}</span>`;
+    el.trend.appendChild(line);
+
+    // The parent carries role="img", so summarize the data on it for
+    // screen readers rather than relying on the hidden child bars.
+    const spoken = week.map((d) => `${d.key} ${d.logged ? d.total.toFixed(1) + " kg" : "no data"}`).join(", ");
+    el.trend.setAttribute("aria-label", `Daily emissions over the last seven days against a ${target} kg target. ${spoken}.`);
+  }
+
+  function renderInsights(cards) {
+    const frag = document.createDocumentFragment();
+    for (const card of cards) {
+      const node = document.createElement("div");
+      node.className = "insight";
+      const tag = document.createElement("span");
+      tag.className = `i-tag ${card.tag}`;
+      tag.textContent = card.label;
+      const text = document.createElement("p");
+      text.className = "i-text";
+      text.textContent = card.text;
+      node.append(tag, text);
+      frag.appendChild(node);
+    }
+    el.insights.replaceChildren(frag);
+  }
+
+  function render() {
+    const entries = Store.getToday();
+    const target = Store.getTarget();
+    const days = Store.getDays();
+    const todayKey = Store.todayKey();
+
+    const totals = Calc.totalsByCategory(entries);
+    const todayTotal = Calc.dayTotal(entries);
+    const foodCal = Calc.dayCalories(entries.filter((e) => e.cat === "food"));
+    const streakDays = Calc.streak(days, target, todayKey);
+    const week = Calc.last7Days(days, todayKey);
+    const avgDay = Calc.averageLoggedDay(days);
+
+    renderDonut(totals, todayTotal);
+    renderLegend(totals, todayTotal);
+    renderStreak(streakDays, target);
+    renderDelta(todayTotal, target);
+    renderEntries(entries);
+    renderTrend(week, target);
+    renderInsights(Insights.build({ todayTotal, totals, target, streakDays, avgDay, foodCal }));
+  }
+
+  function loadSample() { Store.replaceDays(Sample.build(Store.todayKey())); render(); }
+  function resetAll() { Store.clearAll(); el.targetInput.value = Store.getTarget(); render(); }
+
+  /**
+   * Accordion behaviour for the log sections and review cards. Below
+   * 760px each panel collapses (only the first stays open) and the
+   * native summary handles toggling. At wider widths every panel is
+   * forced open and the summary is made inert through CSS, so the
+   * disclosure only ever acts on small screens.
+   */
+  function setupAccordion() {
+    const panels = Array.from(document.querySelectorAll("details.acc"));
+    const mobile = window.matchMedia("(max-width:760px)");
+    const apply = () => panels.forEach((panel, i) => {
+      panel.open = mobile.matches ? i === 0 : true;
+    });
+    apply();
+    mobile.addEventListener("change", apply);
+  }
+
+  function bindShared() {
+    el.entries.addEventListener("click", (event) => {
+      const btn = event.target.closest(".del-btn");
+      if (!btn) return;
+      Store.removeEntry(Number(btn.dataset.id));
+      render();
+    });
+    el.sampleBtn.addEventListener("click", loadSample);
+    el.resetBtn.addEventListener("click", resetAll);
+    el.targetInput.addEventListener("change", () => {
+      const value = parseFloat(el.targetInput.value);
+      if (Number.isFinite(value) && value > 0) { Store.setTarget(Calc.round1(value)); render(); }
+      else { el.targetInput.value = Store.getTarget(); }
     });
   }
 
-  renderInsights(totals, total);
-}
-
-function renderInsights(totals, total){
-  const cards = [];
-  if(total === 0){
-    cards.push({tag:'neutral',label:'Start here',text:'Log your first activity to see personalised insights about your footprint and where to reduce.'});
-  } else {
-    const pct = Math.round((total / GLOBAL) * 100);
-    cards.push({tag: total <= GLOBAL ? 'on-track' : 'above', label:'vs. global', text:`Your footprint is ${pct}% of the global daily average of 10.9 kg CO₂e.`});
-    const topCat = Object.entries(totals).sort((a,b) => b[1]-a[1])[0];
-    if(topCat[1] > 0){
-      cards.push({tag:'above',label:topCat[0],text:`${topCat[0].charAt(0).toUpperCase()+topCat[0].slice(1)} is your largest source today (${topCat[1].toFixed(1)} kg). ${TIPS[topCat[0]]}`});
+  function cacheElements() {
+    const ids = ["sections", "donut", "donut-num", "hero-legend", "streak-tile", "hero-delta",
+      "entries", "trend", "insights", "sample-btn", "reset-btn", "target-input", "page-date"];
+    for (const id of ids) {
+      const key = id.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+      el[key] = $(id);
     }
-    if(total < GLOBAL){
-      cards.push({tag:'on-track',label:'on track',text:`You are ${(GLOBAL-total).toFixed(1)} kg below the global average. Consistent low-carbon days add up meaningfully over the year.`});
-    } else {
-      cards.push({tag:'above',label:'opportunity',text:`Closing the gap to the global average would eliminate ${(total-GLOBAL).toFixed(1)} kg today.`});
-    }
-    cards.push({tag:'info',label:'did you know',text:'The Paris 1.5°C target implies each person reaches under 2.5 kg CO₂e per day by 2050.'});
   }
-  insightsGrid.innerHTML = cards.map(c =>
-    `<div class="i-card">
-      <span class="i-tag ${c.tag}">${c.label}</span>
-      <p class="i-text">${c.text}</p>
-    </div>`
-  ).join('');
-}
 
-['transport','food','energy','shopping'].forEach(cat => {
-  const actSel = getActSel(cat);
-  const qtyInp = getQtyInp(cat);
-  const card = getCard(cat);
+  function init() {
+    cacheElements();
+    buildStaticStructure();
+    el.pageDate.textContent = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    el.targetInput.value = Store.getTarget();
+    bindShared();
+    setupAccordion();
+    render();
+  }
 
-  actSel.innerHTML = ACTS[cat].map((a,i) => `<option value="${i}">${a.name}</option>`).join('');
+  return { init, render };
+})();
 
-  card.addEventListener('click', () => setActive(cat));
-  actSel.addEventListener('change', () => refreshCard(cat));
-  qtyInp.addEventListener('input', () => refreshCard(cat));
+/* ------------------------------------------------------------
+   TESTS
+   A tiny zero dependency assertion harness over the pure modules.
+   Logs to the console always, and shows a panel on the #test hash.
+   ------------------------------------------------------------ */
+const Tests = (() => {
+  const results = [];
+  const assert = (name, condition) => results.push({ name, pass: Boolean(condition) });
+  const near = (a, b, t = 0.05) => Math.abs(a - b) <= t;
 
-  actSel.addEventListener('click', e => e.stopPropagation());
-  qtyInp.addEventListener('click', e => e.stopPropagation());
+  function run() {
+    assert("round1 rounds to one decimal", Calc.round1(0.2499) === 0.2);
+    assert("factorEmissions multiplies", near(Calc.factorEmissions(0.21, 10), 2.1));
+    assert("factorEmissions guards negatives", Calc.factorEmissions(0.21, -5) === 0);
 
-  refreshCard(cat);
+    // energy and solar
+    assert("grid electricity uses the India factor",
+      near(Calc.energyEmissions({ consumedKwh: 10, hasSolar: false }).kg, 7.1));
+    const withSolar = Calc.energyEmissions({ consumedKwh: 10, hasSolar: true, solarKwh: 4 });
+    assert("solar lowers the grid carbon", near(withSolar.kg, 4.26));
+    assert("solar reports the carbon it avoided", near(withSolar.avoidedKg, 2.84));
+    assert("solar cannot exceed consumption",
+      Calc.energyEmissions({ consumedKwh: 5, hasSolar: true, solarKwh: 9 }).kg === 0);
+    assert("unchecked solar is ignored",
+      near(Calc.energyEmissions({ consumedKwh: 10, hasSolar: false, solarKwh: 4 }).kg, 7.1));
+
+    // food matching
+    const beef = Calc.matchFood("beef burger");
+    assert("matchFood matches a known food", beef.items.length >= 1);
+    assert("matchFood sums carbon", beef.totalKg > 0);
+    assert("matchFood reports calories", beef.totalCal > 0);
+    const combo = Calc.matchFood("chicken rice salad");
+    assert("matchFood adds multiple components", combo.items.length === 3);
+    assert("matchFood empty text yields nothing", Calc.matchFood("   ").items.length === 0);
+    assert("matchFood unknown food uses default", Calc.matchFood("zorblax").items[0].name === "Mixed meal");
+    assert("matchFood is case insensitive", Calc.matchFood("BEEF").items[0].name === "Beef");
+
+    // shopping
+    const online = Calc.shoppingTotal({ itemsKg: 70, online: true });
+    assert("shopping online adds delivery and digital", near(online, 70.55));
+    const offline = Calc.shoppingTotal({ itemsKg: 70, online: false, travelFactor: 0.21, travelKm: 4 });
+    assert("shopping offline adds travel", near(offline, 70.8));
+    const walked = Calc.shoppingTotal({ itemsKg: 5.5, online: false, travelFactor: 0, travelKm: 2 });
+    assert("shopping on foot adds no travel carbon", near(walked, 5.5));
+    assert("shopping offline with no travel detail counts items only",
+      near(Calc.shoppingTotal({ itemsKg: 12, online: false }), 12));
+    assert("energy with zero consumption is zero",
+      Calc.energyEmissions({ consumedKwh: 0, hasSolar: false }).kg === 0);
+    assert("dayCalories ignores entries without calories",
+      Calc.dayCalories([{ cat: "transport", kg: 2 }, { cat: "food", kg: 1, cal: 200 }]) === 200);
+
+    // aggregation
+    const sample = [{ cat: "transport", kg: 2.1 }, { cat: "food", kg: 6.6, cal: 500 }, { cat: "transport", kg: 0.9 }];
+    const totals = Calc.totalsByCategory(sample);
+    assert("totalsByCategory sums a category", near(totals.transport, 3.0));
+    assert("totalsByCategory isolates categories", near(totals.food, 6.6));
+    assert("dayTotal sums entries", near(Calc.dayTotal(sample), 9.6));
+    assert("dayCalories sums calories", Calc.dayCalories(sample) === 500);
+
+    // projections
+    assert("annualProjection scales by 365", Calc.annualProjection(6) === 2190);
+    assert("treesToOffset divides by uptake", Calc.treesToOffset(2190) === 104);
+    assert("kmEquivalent inverts the petrol factor", Calc.kmEquivalent(2.1) === 10);
+
+    // streak and window
+    const today = "2026-06-20";
+    const days = {
+      "2026-06-19": [{ cat: "food", kg: 4 }],
+      "2026-06-18": [{ cat: "food", kg: 5 }],
+      "2026-06-17": [{ cat: "food", kg: 9 }],
+    };
+    assert("streak counts consecutive on target days", Calc.streak(days, 6, today) === 2);
+    assert("streak stops at a gap", Calc.streak({ "2026-06-18": [{ cat: "food", kg: 4 }] }, 6, today) === 0);
+    assert("last7Days returns seven days", Calc.last7Days(days, today).length === 7);
+    assert("averageLoggedDay ignores empty days", near(Calc.averageLoggedDay(days), 6.0));
+
+    // insights
+    const empty = Insights.build({ todayTotal: 0, totals: {}, target: 6, streakDays: 0, avgDay: 0, foodCal: 0 });
+    assert("insights show a starter card when empty", empty[0].label === "Start here");
+    const over = Insights.build({ todayTotal: 9, totals: { transport: 9, food: 0, energy: 0, shopping: 0 }, target: 6, streakDays: 0, avgDay: 9, foodCal: 0 });
+    assert("insights flag an over target day", over[0].tag === "warn");
+
+    report();
+    return results;
+  }
+
+  function report() {
+    const passed = results.filter((r) => r.pass).length;
+    console.log(`Footmark tests, ${passed} of ${results.length} passing.`);
+    for (const r of results) console.log(`${r.pass ? "PASS" : "FAIL"}  ${r.name}`);
+    if (location.hash !== "#test") return;
+    const panel = document.getElementById("test-panel");
+    const out = document.getElementById("test-output");
+    panel.classList.add("show");
+    out.innerHTML = results.map((r) => `<div class="${r.pass ? "test-pass" : "test-fail"}">${r.pass ? "PASS" : "FAIL"}  ${r.name}</div>`).join("")
+      + `<div class="test-summary">${passed} of ${results.length} passing</div>`;
+  }
+
+  return { run };
+})();
+
+document.addEventListener("DOMContentLoaded", () => {
+  UI.init();
+  Tests.run();
 });
-
-addBtn.addEventListener('click', logEntry);
-
-document.getElementById('page-date').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-
-setActive('transport');
-render();
 </script>
 </body>
 </html>
