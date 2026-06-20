@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light">
 <meta name="description" content="Footmark helps you understand, track, and reduce your daily carbon footprint through simple actions and personalized insights.">
 <title>Footmark, carbon footprint tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -352,9 +355,22 @@ details:not([open]) > summary.section-head,details:not([open]) > summary.card-he
    brief, to understand, to track, and to reduce, using simple
    logged actions and insights drawn from the user's own data.
 
-   The script is split into small single responsibility modules.
-   All calculation lives in CALC as pure functions so the TESTS
-   module at the bottom can verify behaviour in isolation.
+   ARCHITECTURE
+   The code is a set of small single responsibility modules:
+
+     CONFIG / reference data  immutable factors and catalogues
+     Calc        pure calculation, no DOM or storage, fully tested
+     Store       localStorage persistence and in memory state
+     Insights    pure, turns the user's numbers into observations
+     Sample      generates a demo week on request
+     UI          the only module that touches the DOM
+     Tests       a zero dependency assertion harness
+
+   Data flows one way. UI reads from Store, calls Calc to derive
+   values, and paints. Mutations go back through Store, which
+   persists and triggers a single batched render on the next frame.
+   Pure logic lives in Calc so the same functions the UI relies on
+   are the ones the tests verify.
    ============================================================ */
 
 /* ------------------------------------------------------------
@@ -481,6 +497,15 @@ const ICONS = Object.freeze({
    Pure functions only. No DOM, no storage. Fully covered by the
    test suite, which is why every business rule lives here.
    ------------------------------------------------------------ */
+
+/**
+ * Small memo cache for matchFood, which runs on every keystroke.
+ * Cleared wholesale once it grows past a cap, which is cheap and
+ * keeps the cache from growing without bound.
+ */
+const foodCache = new Map();
+const FOOD_CACHE_MAX = 200;
+
 const Calc = Object.freeze({
   round1(value) { return Math.round(value * 10) / 10; },
 
@@ -520,6 +545,7 @@ const Calc = Object.freeze({
    */
   matchFood(text) {
     const t = String(text || "").toLowerCase();
+    if (foodCache.has(t)) return foodCache.get(t);
     const items = [];
     if (t.trim() !== "") {
       for (const food of FOOD_DB) {
@@ -531,7 +557,10 @@ const Calc = Object.freeze({
     }
     const totalKg = Calc.round1(items.reduce((s, i) => s + i.kg, 0));
     const totalCal = Math.round(items.reduce((s, i) => s + i.cal, 0));
-    return { items, totalKg, totalCal };
+    const result = { items, totalKg, totalCal };
+    if (foodCache.size >= FOOD_CACHE_MAX) foodCache.clear();
+    foodCache.set(t, result);
+    return result;
   },
 
   /**
@@ -751,6 +780,60 @@ const UI = (() => {
 
   const icon = (cat) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[cat]}</svg>`;
   const CHEVRON = '<svg class="acc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
+
+  // Constants for the donut geometry and input handling, kept named
+  // so the rendering code carries no unexplained magic numbers.
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const DONUT = Object.freeze({ size: 148, stroke: 20, maxFlames: 3 });
+  const DEBOUNCE_MS = 120;
+  const FLAME_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c1 4-2 5-2 8a2 2 0 0 0 4 0c2 2 3 4 3 6a5 5 0 0 1-10 0c0-4 4-6 5-14Z"/></svg>';
+
+  /**
+   * Create an element with an optional class and text. Text is set
+   * through textContent, so any string is inserted safely.
+   * @param {string} tag
+   * @param {string|null} [className]
+   * @param {string|null} [text]
+   * @returns {HTMLElement}
+   */
+  function make(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null) node.textContent = text;
+    return node;
+  }
+
+  /**
+   * Run a function on the next animation frame, collapsing repeated
+   * calls within the same frame into one. Used to batch renders.
+   * @param {Function} fn
+   * @returns {Function}
+   */
+  function rafBatch(fn) {
+    let queued = false;
+    return (...args) => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => { queued = false; fn(...args); });
+    };
+  }
+
+  /**
+   * Debounce a function so it only runs after calls stop for `ms`.
+   * @param {Function} fn
+   * @param {number} ms
+   * @returns {Function}
+   */
+  function debounce(fn, ms) {
+    let timer = 0;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), ms);
+    };
+  }
+
+  /** Batched render. Multiple state changes in a frame collapse to one paint. */
+  const scheduleRender = rafBatch(() => render());
   const $ = (id) => document.getElementById(id);
 
   /* ---- Section, transport ---- */
@@ -832,9 +915,8 @@ const UI = (() => {
       const chips = $("f-chips");
       const frag = document.createDocumentFragment();
       for (const item of result.items) {
-        const c = document.createElement("span");
-        c.className = "chip";
-        c.innerHTML = `${item.name} <span>${item.kg.toFixed(1)} kg</span>`;
+        const c = make("span", "chip", `${item.name} `);
+        c.appendChild(make("span", null, `${item.kg.toFixed(1)} kg`));
         frag.appendChild(c);
       }
       chips.replaceChildren(frag);
@@ -853,7 +935,8 @@ const UI = (() => {
       this.refresh();
     },
     bind(root) {
-      $("f-text").addEventListener("input", () => this.refresh());
+      const debouncedRefresh = debounce(() => this.refresh(), DEBOUNCE_MS);
+      $("f-text").addEventListener("input", debouncedRefresh);
       $("f-text").addEventListener("keydown", (e) => { if (e.key === "Enter") this.add(); });
       $("f-add").addEventListener("click", () => this.add());
     },
@@ -1058,7 +1141,7 @@ const UI = (() => {
   /** Shared, commit an entry and rerender. */
   function commit(entry) {
     Store.addEntry({ id: Date.now(), ...entry });
-    render();
+    scheduleRender();
   }
 
   function buildStaticStructure() {
@@ -1072,32 +1155,50 @@ const UI = (() => {
 
   /* ---- Rendering ---- */
 
+  /** Create an SVG element in the SVG namespace with attributes. */
+  function svgEl(tag, attrs) {
+    const node = document.createElementNS(SVG_NS, tag);
+    for (const key in attrs) node.setAttribute(key, attrs[key]);
+    return node;
+  }
+
   /**
-   * Build the donut SVG string for the day's category split.
-   * Segments are proportional arcs laid end to end. With no data a
-   * neutral track ring is shown instead.
+   * Build the donut as real SVG nodes for the day's category split.
+   * Segments are proportional arcs laid end to end. With no data only
+   * the neutral track ring is drawn. Built with the DOM rather than an
+   * HTML string so no markup is ever parsed at runtime.
+   * @returns {SVGElement}
    */
-  function donutSvg(totals, total) {
-    const size = 148, sw = 20, r = (size - sw) / 2, cx = size / 2;
-    const circ = 2 * Math.PI * r;
-    const track = `<circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="var(--border)" stroke-width="${sw}"/>`;
-    let offset = 0;
-    const segs = total > 0
-      ? CATEGORY_ORDER.filter((c) => totals[c] > 0).map((c) => {
-          const len = (totals[c] / total) * circ;
-          const seg = `<circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="${CATEGORY_COLORS[c]}" stroke-width="${sw}" stroke-dasharray="${len} ${circ - len}" stroke-dashoffset="${-offset}"/>`;
-          offset += len;
-          return seg;
-        }).join("")
-      : "";
-    return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" aria-hidden="true">${track}${segs}</svg>`;
+  function buildDonut(totals, total) {
+    const { size, stroke } = DONUT;
+    const r = (size - stroke) / 2, cx = size / 2, circ = 2 * Math.PI * r;
+    const svg = svgEl("svg", { viewBox: `0 0 ${size} ${size}`, width: size, height: size, "aria-hidden": "true" });
+    svg.appendChild(svgEl("circle", { cx, cy: cx, r, fill: "none", stroke: "var(--border)", "stroke-width": stroke }));
+    if (total > 0) {
+      let offset = 0;
+      for (const cat of CATEGORY_ORDER) {
+        if (totals[cat] <= 0) continue;
+        const len = (totals[cat] / total) * circ;
+        svg.appendChild(svgEl("circle", {
+          cx, cy: cx, r, fill: "none", stroke: CATEGORY_COLORS[cat], "stroke-width": stroke,
+          "stroke-dasharray": `${len} ${circ - len}`, "stroke-dashoffset": -offset,
+        }));
+        offset += len;
+      }
+    }
+    return svg;
   }
 
   function renderDonut(totals, todayTotal) {
+    // Skip the rebuild when the split is unchanged (for example when
+    // only the target moved). Cheap guard against redundant DOM work.
+    const sig = todayTotal + "|" + CATEGORY_ORDER.map((c) => totals[c]).join(",");
+    if (el._donutSig === sig) return;
+    el._donutSig = sig;
     // Keep the center overlay, swap only the SVG behind it.
     const existing = el.donut.querySelector("svg");
     if (existing) existing.remove();
-    el.donut.insertAdjacentHTML("afterbegin", donutSvg(totals, todayTotal));
+    el.donut.insertBefore(buildDonut(totals, todayTotal), el.donut.firstChild);
     el.donutNum.textContent = todayTotal.toFixed(1);
     const summary = todayTotal > 0
       ? CATEGORY_ORDER.filter((c) => totals[c] > 0).map((c) => `${CATEGORY_META[c].label} ${totals[c]} kg`).join(", ")
@@ -1107,7 +1208,7 @@ const UI = (() => {
 
   function renderLegend(totals, todayTotal) {
     if (todayTotal === 0) {
-      el.heroLegend.innerHTML = '<p class="legend-empty">Log an activity to see today\u2019s split by category.</p>';
+      el.heroLegend.replaceChildren(make("p", "legend-empty", "Log an activity to see today\u2019s split by category."));
       return;
     }
     const frag = document.createDocumentFragment();
@@ -1136,42 +1237,56 @@ const UI = (() => {
 
   /** A flame for each day of streak, up to three, hottest first. */
   function renderStreak(streakDays, target) {
-    const flame = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c1 4-2 5-2 8a2 2 0 0 0 4 0c2 2 3 4 3 6a5 5 0 0 1-10 0c0-4 4-6 5-14Z"/></svg>';
-    const tile = el.streakTile;
+    const flames = make("span", "streak-flames");
+    const text = make("span", "streak-text");
     if (streakDays > 0) {
-      const flameCount = Math.min(streakDays, 3);
-      const classes = ["flame-hot", "flame-mid", "flame-low"];
-      const flames = Array.from({ length: flameCount }, (_, i) => `<span class="${classes[i]}">${flame}</span>`).join("");
-      tile.innerHTML = `<span class="streak-flames">${flames}</span>
-        <span class="streak-text"><strong>${streakDays} day${streakDays === 1 ? "" : "s"}</strong> under target in a row. Keep it lit.</span>`;
+      const heat = ["flame-hot", "flame-mid", "flame-low"];
+      for (let i = 0; i < Math.min(streakDays, DONUT.maxFlames); i++) {
+        const f = make("span", heat[i]);
+        f.innerHTML = FLAME_SVG; // static markup, no interpolation
+        flames.appendChild(f);
+      }
+      text.append(make("strong", null, `${streakDays} day${streakDays === 1 ? "" : "s"}`), " under target in a row. Keep it lit.");
     } else {
-      tile.innerHTML = `<span class="streak-flames"><span class="flame-off">${flame}</span></span>
-        <span class="streak-text none">No streak yet. Stay under ${target} kg today to spark one.</span>`;
+      const f = make("span", "flame-off");
+      f.innerHTML = FLAME_SVG;
+      flames.appendChild(f);
+      text.classList.add("none");
+      text.textContent = `No streak yet. Stay under ${target} kg today to spark one.`;
     }
+    el.streakTile.replaceChildren(flames, text);
   }
 
   function renderDelta(todayTotal, target) {
     const tile = el.heroDelta;
     tile.classList.remove("good", "over");
     const pct = target > 0 ? Math.min((todayTotal / target) * 100, 100) : 0;
-    let head;
+    const head = make("span");
     if (todayTotal === 0) {
-      head = "Log an activity to begin.";
+      head.textContent = "Log an activity to begin.";
     } else if (todayTotal <= target) {
       tile.classList.add("good");
-      head = `<strong>${Calc.round1(target - todayTotal)} kg</strong> under your ${target} kg target.`;
+      head.append(make("strong", null, `${Calc.round1(target - todayTotal)} kg`), ` under your ${target} kg target.`);
     } else {
       tile.classList.add("over");
-      head = `<strong>${Calc.round1(todayTotal - target)} kg</strong> over your ${target} kg target.`;
+      head.append(make("strong", null, `${Calc.round1(todayTotal - target)} kg`), ` over your ${target} kg target.`);
     }
-    const fillColor = todayTotal > target ? "var(--amber)" : "var(--green-mid)";
-    tile.innerHTML = `${head}<div class="delta-bar"><div class="delta-fill" style="width:${pct}%;background:${fillColor}"></div></div>`;
+    const fill = make("div", "delta-fill");
+    fill.style.width = `${pct}%`;
+    fill.style.background = todayTotal > target ? "var(--amber)" : "var(--green-mid)";
+    const bar = make("div", "delta-bar");
+    bar.appendChild(fill);
+    tile.replaceChildren(head, bar);
   }
 
   function renderEntries(entries) {
     if (entries.length === 0) {
-      el.entries.innerHTML = '<p class="empty">No activities logged yet. <button type="button" id="empty-sample" class="link-btn">Load a sample week</button> to explore.</p>';
-      $("empty-sample").addEventListener("click", loadSample);
+      const p = make("p", "empty");
+      const btn = make("button", "link-btn", "Load a sample week");
+      btn.type = "button";
+      btn.addEventListener("click", loadSample);
+      p.append("No activities logged yet. ", btn, " to explore.");
+      el.entries.replaceChildren(p);
       return;
     }
     const frag = document.createDocumentFragment();
@@ -1293,8 +1408,8 @@ const UI = (() => {
     renderInsights(Insights.build({ todayTotal, totals, target, streakDays, avgDay, foodCal }));
   }
 
-  function loadSample() { Store.replaceDays(Sample.build(Store.todayKey())); render(); }
-  function resetAll() { Store.clearAll(); el.targetInput.value = Store.getTarget(); render(); }
+  function loadSample() { Store.replaceDays(Sample.build(Store.todayKey())); scheduleRender(); }
+  function resetAll() { Store.clearAll(); el.targetInput.value = Store.getTarget(); scheduleRender(); }
 
   /**
    * Accordion behaviour for the log sections and review cards. Below
@@ -1318,13 +1433,13 @@ const UI = (() => {
       const btn = event.target.closest(".del-btn");
       if (!btn) return;
       Store.removeEntry(Number(btn.dataset.id));
-      render();
+      scheduleRender();
     });
     el.sampleBtn.addEventListener("click", loadSample);
     el.resetBtn.addEventListener("click", resetAll);
     el.targetInput.addEventListener("change", () => {
       const value = parseFloat(el.targetInput.value);
-      if (Number.isFinite(value) && value > 0) { Store.setTarget(Calc.round1(value)); render(); }
+      if (Number.isFinite(value) && value > 0) { Store.setTarget(Calc.round1(value)); scheduleRender(); }
       else { el.targetInput.value = Store.getTarget(); }
     });
   }
@@ -1432,6 +1547,46 @@ const Tests = (() => {
     assert("insights show a starter card when empty", empty[0].label === "Start here");
     const over = Insights.build({ todayTotal: 9, totals: { transport: 9, food: 0, energy: 0, shopping: 0 }, target: 6, streakDays: 0, avgDay: 9, foodCal: 0 });
     assert("insights flag an over target day", over[0].tag === "warn");
+    const withFood = Insights.build({ todayTotal: 5, totals: { transport: 2, food: 3, energy: 0, shopping: 0 }, target: 6, streakDays: 0, avgDay: 5, foodCal: 650 });
+    assert("insights surface a meals card when food has calories",
+      withFood.some((c) => c.label === "Meals today"));
+    const withStreak = Insights.build({ todayTotal: 4, totals: { transport: 4, food: 0, energy: 0, shopping: 0 }, target: 6, streakDays: 3, avgDay: 4, foodCal: 0 });
+    assert("insights surface a momentum card on a streak",
+      withStreak.some((c) => c.label === "Momentum"));
+
+    // more food and shopping coverage
+    const beefCheese = Calc.matchFood("beef and cheese");
+    assert("matchFood handles two distinct foods", beefCheese.items.length === 2 && near(beefCheese.totalKg, 9.1));
+    assert("shopping online with no items still counts the order overhead",
+      near(Calc.shoppingTotal({ itemsKg: 0, online: true }), 0.55));
+    assert("shopping offline sums items and a car trip",
+      near(Calc.shoppingTotal({ itemsKg: 5.5, online: false, travelFactor: 0.21, travelKm: 10 }), 7.6));
+
+    // energy and solar coverage
+    const fullSolar = Calc.energyEmissions({ consumedKwh: 8, hasSolar: true, solarKwh: 8 });
+    assert("solar covering all usage zeroes the grid carbon", fullSolar.kg === 0);
+    assert("solar covering all usage reports the full avoided amount", near(fullSolar.avoidedKg, 5.68));
+    assert("partial solar leaves the right grid share",
+      Calc.energyEmissions({ consumedKwh: 8, hasSolar: true, solarKwh: 3 }).gridKwh === 5);
+
+    // streak ignores today, edges
+    assert("streak counts prior days even when today is over target",
+      Calc.streak({ "2026-06-19": [{ cat: "food", kg: 4 }] }, 6, today) === 1);
+    assert("treesToOffset of zero is zero", Calc.treesToOffset(0) === 0);
+    assert("annualProjection of zero is zero", Calc.annualProjection(0) === 0);
+    assert("totalsByCategory ignores an unknown category",
+      Calc.dayTotal([{ cat: "misc", kg: 5 }]) === 5 && Calc.totalsByCategory([{ cat: "misc", kg: 5 }]).transport === 0);
+
+    // DOM smoke tests, read only, run only in a browser after init
+    if (typeof document !== "undefined" && document.getElementById("donut")) {
+      assert("DOM: donut renders an svg", !!document.querySelector("#donut svg"));
+      assert("DOM: four log sections are present", document.querySelectorAll("details.section.acc").length === 4);
+      assert("DOM: three review cards are present", document.querySelectorAll("details.card.acc").length === 3);
+      assert("DOM: the trend and insights regions exist",
+        !!document.getElementById("trend") && !!document.getElementById("insights"));
+      assert("DOM: the target input reflects the stored target",
+        Number(document.getElementById("target-input").value) === Store.getTarget());
+    }
 
     report();
     return results;
