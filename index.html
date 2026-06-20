@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Footmark — carbon footprint tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green-dark:#1a2e1a;
+  --green-mid:#4caf72;
+  --green-light:#e8f5ec;
+  --canvas:#f7f5f0;
+  --surface:#ffffff;
+  --border:#e2e0db;
+  --text-primary:#1a1a1a;
+  --text-muted:#6b7c6b;
+  --text-on-dark:#b8cdb8;
+  --accent-amber:#f0c060;
+  --sidebar-w:clamp(260px, 24vw, 320px);
+  --r-md:8px;
+  --r-lg:12px;
+  --pad-main:clamp(1rem, 3vw, 2rem);
+}
+html,body{height:100%;font-family:'Inter',sans-serif;font-size:14px;color:var(--text-primary);background:var(--canvas)}
+a{color:inherit}
+input,select,button{font-family:inherit;font-size:14px}
+
+.layout{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh}
+
+.sidebar{background:var(--green-dark);color:#fff;padding:2rem 1.5rem;display:flex;flex-direction:column;gap:2rem;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-dot{width:14px;height:14px;border-radius:50%;background:var(--green-mid);flex-shrink:0}
+.brand-name{font-family:'DM Serif Display',serif;font-size:32px;font-weight:400;letter-spacing:-0.02em;line-height:1;color:#fff}
+
+.score-section{}
+.score-label{font-size:11px;letter-spacing:0.08em;color:var(--text-on-dark);text-transform:uppercase;margin-bottom:6px}
+.score-number{font-family:'DM Serif Display',serif;font-size:clamp(48px, 5.5vw, 72px);line-height:1;color:#fff}
+.score-unit{font-size:13px;color:var(--text-on-dark);margin-top:4px}
+.score-delta{font-size:13px;margin-top:8px;line-height:1.5;color:var(--text-on-dark)}
+.score-delta span{color:#fff;font-weight:500}
+
+.gauge-section{display:flex;flex-direction:column;gap:10px}
+.gauge-row{display:flex;flex-direction:column;gap:4px}
+.gauge-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--text-on-dark)}
+.gauge-track{height:6px;background:rgba(255,255,255,0.12);border-radius:99px;overflow:hidden}
+.gauge-fill{height:100%;border-radius:99px;transition:width 0.5s ease}
+.gauge-you .gauge-fill{background:var(--green-mid)}
+.gauge-global .gauge-fill{background:rgba(255,255,255,0.35);width:68%}
+
+.cat-breakdown{display:flex;flex-direction:column;gap:8px}
+.cat-row{display:flex;align-items:center;gap:10px}
+.cat-icon{width:28px;height:28px;border-radius:var(--r-md);background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cat-icon svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.cat-info{flex:1;min-width:0}
+.cat-name{font-size:12px;color:var(--text-on-dark);margin-bottom:3px}
+.cat-mini-track{height:3px;background:rgba(255,255,255,0.1);border-radius:99px;overflow:hidden}
+.cat-mini-fill{height:100%;background:var(--green-mid);border-radius:99px;transition:width 0.4s ease}
+.cat-kg{font-size:12px;font-weight:500;color:#fff;flex-shrink:0;min-width:44px;text-align:right}
+
+.paris-note{font-size:11px;color:var(--text-on-dark);line-height:1.5;padding-top:1rem;border-top:1px solid rgba(255,255,255,0.08)}
+.paris-note strong{color:var(--accent-amber)}
+
+.main{background:var(--canvas);padding:var(--pad-main);display:flex;flex-direction:column;gap:1.25rem;min-width:0}
+
+.page-header{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.page-title{font-size:clamp(16px, 2vw, 20px);font-weight:500}
+.page-date{font-size:13px;color:var(--text-muted)}
+
+.card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r-lg);padding:clamp(1rem, 2vw, 1.5rem)}
+.card-title{font-size:11px;font-weight:500;letter-spacing:0.07em;color:var(--text-muted);text-transform:uppercase;margin-bottom:1rem}
+
+.cat-cards-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.cat-log-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r-lg);padding:1rem;cursor:pointer;transition:border-color 0.15s,box-shadow 0.15s;display:flex;flex-direction:column;gap:10px}
+.cat-log-card:hover{border-color:var(--green-mid)}
+.cat-log-card.active{border-color:var(--green-mid);box-shadow:0 0 0 3px rgba(76,175,114,0.12)}
+.clc-header{display:flex;align-items:center;gap:8px}
+.clc-icon{width:28px;height:28px;border-radius:var(--r-md);background:var(--green-light);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.clc-icon svg{width:14px;height:14px;stroke:var(--green-dark);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.clc-name{font-size:13px;font-weight:500}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:12px;color:var(--text-muted)}
+.field select,.field input{padding:8px 10px;background:var(--canvas);border:0.5px solid var(--border);border-radius:var(--r-md);color:var(--text-primary);transition:border-color 0.15s;appearance:none;-webkit-appearance:none;width:100%}
+.field select:focus,.field input:focus{outline:none;border-color:var(--green-mid)}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7c6b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:26px}
+.clc-preview{font-size:13px;font-weight:500;color:var(--green-dark);background:var(--green-light);border-radius:var(--r-md);padding:6px 10px;text-align:center}
+.add-bar{display:flex;align-items:center;gap:12px;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r-lg);padding:12px 1rem}
+.add-bar-label{font-size:13px;color:var(--text-muted);flex:1}
+.add-bar-preview{font-size:14px;font-weight:500;color:var(--green-dark);white-space:nowrap}
+.add-btn{padding:10px 20px;background:var(--green-dark);color:#fff;border:none;border-radius:var(--r-md);font-weight:500;cursor:pointer;transition:opacity 0.15s;white-space:nowrap;font-size:14px}
+.add-btn:hover{opacity:0.88}
+.add-btn:active{opacity:0.75}
+
+.history-list{display:flex;flex-direction:column;gap:6px;margin-top:1rem}
+.empty{font-size:13px;color:var(--text-muted);padding:8px 0}
+.h-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--canvas);border-radius:var(--r-md)}
+.h-icon-wrap{width:30px;height:30px;border-radius:var(--r-md);background:var(--green-light);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.h-icon-wrap svg{width:14px;height:14px;stroke:var(--green-dark);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.h-body{flex:1;min-width:0}
+.h-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.h-sub{font-size:11px;color:var(--text-muted);margin-top:1px}
+.h-kg{font-size:13px;font-weight:500;flex-shrink:0}
+.del-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;border-radius:var(--r-md);display:flex;align-items:center;transition:color 0.15s}
+.del-btn:hover{color:#c0392b}
+.del-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+
+.insights-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.i-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r-lg);padding:1rem}
+.i-tag{display:inline-block;font-size:11px;font-weight:500;padding:3px 9px;border-radius:var(--r-md);margin-bottom:8px}
+.i-tag.on-track{background:#e8f5ec;color:#1a5c2a}
+.i-tag.above{background:#fef3e2;color:#7c4a00}
+.i-tag.info{background:#e8f0fe;color:#1a3a7c}
+.i-tag.neutral{background:#f0ede8;color:#3a3530}
+.i-text{font-size:13px;color:var(--text-primary);line-height:1.55}
+
+@media(max-width:960px){
+  :root{--sidebar-w:240px}
+  .sidebar{padding:1.5rem 1.25rem;gap:1.5rem}
+  .brand-name{font-size:26px}
+  .cat-cards-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:768px){
+  .layout{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .sidebar{position:static;height:auto;padding:1.25rem;gap:1.25rem;display:grid;grid-template-columns:auto 1fr;grid-template-areas:"brand score" "gauges gauges" "cats cats" "note note";align-items:start;column-gap:1.5rem}
+  .brand{grid-area:brand;align-self:center}
+  .score-section{grid-area:score;text-align:right}
+  .gauge-section{grid-area:gauges}
+  .cat-breakdown{grid-area:cats;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .cat-row{flex-direction:column;align-items:flex-start;gap:6px}
+  .cat-info{width:100%}
+  .cat-mini-track{width:100%}
+  .cat-kg{align-self:flex-start;min-width:0}
+  .paris-note{grid-area:note}
+  .brand-name{font-size:30px}
+  .cat-cards-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .add-bar{flex-wrap:wrap}
+  .add-bar-label{flex-basis:100%}
+}
+@media(max-width:560px){
+  .sidebar{grid-template-columns:1fr;grid-template-areas:"brand" "score" "gauges" "cats" "note";row-gap:1rem}
+  .brand{justify-content:flex-start}
+  .score-section{text-align:left}
+  .cat-breakdown{grid-template-columns:repeat(2,1fr)}
+  .cat-cards-row{grid-template-columns:1fr}
+  .insights-grid{grid-template-columns:1fr}
+}
+@media(max-width:380px){
+  .cat-breakdown{grid-template-columns:1fr}
+  .brand-name{font-size:26px}
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-dot"></div>
+    <span class="brand-name">footmark</span>
+  </div>
+
+  <div class="score-section">
+    <p class="score-label">Today's footprint</p>
+    <p class="score-number" id="score-num">0.0</p>
+    <p class="score-unit">kg CO₂e</p>
+    <p class="score-delta" id="score-delta">Log an activity to begin.</p>
+  </div>
+
+  <div class="gauge-section">
+    <div class="gauge-row gauge-you">
+      <div class="gauge-meta">
+        <span>You</span>
+        <span id="gauge-you-val">0.0 kg</span>
+      </div>
+      <div class="gauge-track">
+        <div class="gauge-fill" id="gauge-you-fill" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="gauge-row gauge-global">
+      <div class="gauge-meta">
+        <span>Global average</span>
+        <span>10.9 kg</span>
+      </div>
+      <div class="gauge-track">
+        <div class="gauge-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cat-breakdown">
+    <div class="cat-row" data-cat="transport">
+      <div class="cat-icon">
+        <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="11" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+      </div>
+      <div class="cat-info">
+        <p class="cat-name">Transport</p>
+        <div class="cat-mini-track"><div class="cat-mini-fill" id="cmf-transport" style="width:0%"></div></div>
+      </div>
+      <p class="cat-kg" id="ckg-transport">0.0</p>
+    </div>
+    <div class="cat-row" data-cat="food">
+      <div class="cat-icon">
+        <svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+      </div>
+      <div class="cat-info">
+        <p class="cat-name">Food</p>
+        <div class="cat-mini-track"><div class="cat-mini-fill" id="cmf-food" style="width:0%"></div></div>
+      </div>
+      <p class="cat-kg" id="ckg-food">0.0</p>
+    </div>
+    <div class="cat-row" data-cat="energy">
+      <div class="cat-icon">
+        <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </div>
+      <div class="cat-info">
+        <p class="cat-name">Energy</p>
+        <div class="cat-mini-track"><div class="cat-mini-fill" id="cmf-energy" style="width:0%"></div></div>
+      </div>
+      <p class="cat-kg" id="ckg-energy">0.0</p>
+    </div>
+    <div class="cat-row" data-cat="shopping">
+      <div class="cat-icon">
+        <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      </div>
+      <div class="cat-info">
+        <p class="cat-name">Shopping</p>
+        <div class="cat-mini-track"><div class="cat-mini-fill" id="cmf-shopping" style="width:0%"></div></div>
+      </div>
+      <p class="cat-kg" id="ckg-shopping">0.0</p>
+    </div>
+  </div>
+
+  <p class="paris-note">The Paris Agreement implies <strong>&lt;2.5 kg</strong> per person per day by 2050 to limit warming to 1.5°C.</p>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <p class="page-title">Daily log</p>
+    <p class="page-date" id="page-date"></p>
+  </div>
+
+  <div class="cat-cards-row" id="cat-cards-row">
+    <div class="cat-log-card active" data-cat="transport">
+      <div class="clc-header">
+        <div class="clc-icon">
+          <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="11" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+        </div>
+        <span class="clc-name">Transport</span>
+      </div>
+      <div class="field">
+        <label>Activity</label>
+        <select class="clc-act" data-cat="transport"></select>
+      </div>
+      <div class="field">
+        <label class="clc-qty-label">Distance (km)</label>
+        <input type="number" class="clc-qty" min="0" step="1" value="10">
+      </div>
+      <div class="clc-preview">0.0 kg CO₂e</div>
+    </div>
+
+    <div class="cat-log-card" data-cat="food">
+      <div class="clc-header">
+        <div class="clc-icon">
+          <svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+        </div>
+        <span class="clc-name">Food</span>
+      </div>
+      <div class="field">
+        <label>Activity</label>
+        <select class="clc-act" data-cat="food"></select>
+      </div>
+      <div class="field">
+        <label class="clc-qty-label">Meal(s)</label>
+        <input type="number" class="clc-qty" min="0" step="1" value="1">
+      </div>
+      <div class="clc-preview">0.0 kg CO₂e</div>
+    </div>
+
+    <div class="cat-log-card" data-cat="energy">
+      <div class="clc-header">
+        <div class="clc-icon">
+          <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <span class="clc-name">Energy</span>
+      </div>
+      <div class="field">
+        <label>Activity</label>
+        <select class="clc-act" data-cat="energy"></select>
+      </div>
+      <div class="field">
+        <label class="clc-qty-label">kWh</label>
+        <input type="number" class="clc-qty" min="0" step="1" value="5">
+      </div>
+      <div class="clc-preview">0.0 kg CO₂e</div>
+    </div>
+
+    <div class="cat-log-card" data-cat="shopping">
+      <div class="clc-header">
+        <div class="clc-icon">
+          <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        </div>
+        <span class="clc-name">Shopping</span>
+      </div>
+      <div class="field">
+        <label>Activity</label>
+        <select class="clc-act" data-cat="shopping"></select>
+      </div>
+      <div class="field">
+        <label class="clc-qty-label">Item(s)</label>
+        <input type="number" class="clc-qty" min="0" step="1" value="1">
+      </div>
+      <div class="clc-preview">0.0 kg CO₂e</div>
+    </div>
+  </div>
+
+  <div class="add-bar">
+    <span class="add-bar-label">Adding: <span id="add-bar-summary">select a card above</span></span>
+    <span class="add-bar-preview" id="add-bar-kg"></span>
+    <button class="add-btn" id="add-btn">Add to today</button>
+  </div>
+  <div class="card">
+    <p class="card-title">Today's entries</p>
+    <div class="history-list" id="history-list">
+      <p class="empty">No activities logged yet.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="card-title">Insights</p>
+    <div class="insights-grid" id="insights-grid"></div>
+  </div>
+</main>
+
+</div>
+<script>
+const ACTS = {
+  transport:[
+    {name:"Car (petrol)",unit:"km",factor:0.21},
+    {name:"Car (diesel)",unit:"km",factor:0.17},
+    {name:"Car (electric)",unit:"km",factor:0.07},
+    {name:"Motorcycle",unit:"km",factor:0.11},
+    {name:"Bus",unit:"km",factor:0.09},
+    {name:"Train",unit:"km",factor:0.04},
+    {name:"Flight (short-haul)",unit:"km",factor:0.255},
+    {name:"Flight (long-haul)",unit:"km",factor:0.195},
+    {name:"Bicycle",unit:"km",factor:0.0}
+  ],
+  food:[
+    {name:"Beef meal",unit:"meal(s)",factor:6.6},
+    {name:"Lamb meal",unit:"meal(s)",factor:5.9},
+    {name:"Pork meal",unit:"meal(s)",factor:2.9},
+    {name:"Chicken meal",unit:"meal(s)",factor:1.7},
+    {name:"Fish meal",unit:"meal(s)",factor:1.2},
+    {name:"Vegetarian meal",unit:"meal(s)",factor:0.7},
+    {name:"Vegan meal",unit:"meal(s)",factor:0.4}
+  ],
+  energy:[
+    {name:"Electricity (grid avg)",unit:"kWh",factor:0.42},
+    {name:"Natural gas",unit:"kWh",factor:0.20},
+    {name:"Heating oil",unit:"litre(s)",factor:2.54},
+    {name:"Hot shower",unit:"minute(s)",factor:0.07}
+  ],
+  shopping:[
+    {name:"New t-shirt",unit:"item(s)",factor:5.5},
+    {name:"Jeans",unit:"item(s)",factor:33.4},
+    {name:"Smartphone",unit:"item(s)",factor:70.0},
+    {name:"Laptop",unit:"item(s)",factor:300.0},
+    {name:"Online delivery parcel",unit:"parcel(s)",factor:0.5}
+  ]
+};
+
+const GLOBAL = 10.9;
+const TIPS = {
+  transport:"Switching to public transit or cycling for short trips can cut transport emissions by up to 70%.",
+  food:"Replacing one beef meal with a plant-based alternative saves around 6 kg CO₂e per day.",
+  energy:"Reducing shower time by 5 minutes saves roughly 0.35 kg CO₂e per day.",
+  shopping:"Buying second-hand or extending device lifetimes significantly cuts embodied carbon."
+};
+
+let entries = [];
+let activeCat = 'transport';
+
+const historyList = document.getElementById('history-list');
+const insightsGrid = document.getElementById('insights-grid');
+const scoreNum = document.getElementById('score-num');
+const scoreDelta = document.getElementById('score-delta');
+const gaugeYouFill = document.getElementById('gauge-you-fill');
+const gaugeYouVal = document.getElementById('gauge-you-val');
+const addBtn = document.getElementById('add-btn');
+const addBarSummary = document.getElementById('add-bar-summary');
+const addBarKg = document.getElementById('add-bar-kg');
+
+function fmt(n){ return parseFloat(n.toFixed(1)); }
+
+function getCard(cat){ return document.querySelector(`.cat-log-card[data-cat="${cat}"]`); }
+function getActSel(cat){ return getCard(cat).querySelector('.clc-act'); }
+function getQtyInp(cat){ return getCard(cat).querySelector('.clc-qty'); }
+function getPreview(cat){ return getCard(cat).querySelector('.clc-preview'); }
+function getQtyLabel(cat){ return getCard(cat).querySelector('.clc-qty-label'); }
+
+function computeKg(cat){
+  const act = ACTS[cat][+getActSel(cat).value];
+  const qty = parseFloat(getQtyInp(cat).value) || 0;
+  return fmt(act.factor * qty);
+}
+
+function refreshCard(cat){
+  const act = ACTS[cat][+getActSel(cat).value];
+  getQtyLabel(cat).textContent = act.unit.charAt(0).toUpperCase() + act.unit.slice(1);
+  const kg = computeKg(cat);
+  getPreview(cat).textContent = kg.toFixed(1) + ' kg CO₂e';
+  if(cat === activeCat) refreshAddBar();
+}
+
+function refreshAddBar(){
+  const act = ACTS[activeCat][+getActSel(activeCat).value];
+  const qty = parseFloat(getQtyInp(activeCat).value) || 0;
+  const kg = computeKg(activeCat);
+  addBarSummary.textContent = `${act.name}, ${qty} ${act.unit}`;
+  addBarKg.textContent = kg.toFixed(1) + ' kg CO₂e';
+}
+
+function setActive(cat){
+  document.querySelectorAll('.cat-log-card').forEach(c => c.classList.remove('active'));
+  getCard(cat).classList.add('active');
+  activeCat = cat;
+  refreshAddBar();
+}
+
+function logEntry(){
+  const cat = activeCat;
+  const act = ACTS[cat][+getActSel(cat).value];
+  const qty = parseFloat(getQtyInp(cat).value) || 0;
+  if(qty <= 0) return;
+  entries.push({ id: Date.now(), cat, name: act.name, qty, unit: act.unit, kg: computeKg(cat) });
+  getQtyInp(cat).value = 1;
+  refreshCard(cat);
+  render();
+}
+
+function removeEntry(id){
+  entries = entries.filter(e => e.id !== id);
+  render();
+}
+
+const CAT_SVG = {
+  transport:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="11" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>',
+  food:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',
+  energy:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+  shopping:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>'
+};
+
+function render(){
+  const totals = { transport:0, food:0, energy:0, shopping:0 };
+  entries.forEach(e => { totals[e.cat] = fmt(totals[e.cat] + e.kg); });
+  const total = fmt(Object.values(totals).reduce((a,b) => a+b, 0));
+
+  scoreNum.textContent = total.toFixed(1);
+  gaugeYouVal.textContent = total.toFixed(1) + ' kg';
+  gaugeYouFill.style.width = Math.min((total / 16) * 100, 100) + '%';
+
+  if(total === 0){
+    scoreDelta.innerHTML = 'Log an activity to begin.';
+  } else {
+    const diff = fmt(total - GLOBAL);
+    if(diff < 0){
+      scoreDelta.innerHTML = `<span>${Math.abs(diff).toFixed(1)} kg</span> below the global daily average.`;
+    } else if(diff === 0){
+      scoreDelta.innerHTML = 'Right at the global daily average.';
+    } else {
+      scoreDelta.innerHTML = `<span>${diff.toFixed(1)} kg</span> above the global daily average.`;
+    }
+  }
+
+  const maxCat = Math.max(...Object.values(totals), 1);
+  ['transport','food','energy','shopping'].forEach(c => {
+    document.getElementById('ckg-' + c).textContent = totals[c].toFixed(1);
+    document.getElementById('cmf-' + c).style.width = Math.min((totals[c] / maxCat) * 100, 100) + '%';
+  });
+
+  if(entries.length === 0){
+    historyList.innerHTML = '<p class="empty">No activities logged yet.</p>';
+  } else {
+    historyList.innerHTML = [...entries].reverse().map(e =>
+      `<div class="h-item">
+        <div class="h-icon-wrap">${CAT_SVG[e.cat]}</div>
+        <div class="h-body">
+          <p class="h-name">${e.name}</p>
+          <p class="h-sub">${e.qty} ${e.unit}</p>
+        </div>
+        <p class="h-kg">${e.kg.toFixed(1)} kg</p>
+        <button class="del-btn" data-id="${e.id}" aria-label="Remove entry">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke-width="1.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>`
+    ).join('');
+    historyList.querySelectorAll('.del-btn').forEach(btn => {
+      btn.addEventListener('click', () => removeEntry(+btn.dataset.id));
+    });
+  }
+
+  renderInsights(totals, total);
+}
+
+function renderInsights(totals, total){
+  const cards = [];
+  if(total === 0){
+    cards.push({tag:'neutral',label:'Start here',text:'Log your first activity to see personalised insights about your footprint and where to reduce.'});
+  } else {
+    const pct = Math.round((total / GLOBAL) * 100);
+    cards.push({tag: total <= GLOBAL ? 'on-track' : 'above', label:'vs. global', text:`Your footprint is ${pct}% of the global daily average of 10.9 kg CO₂e.`});
+    const topCat = Object.entries(totals).sort((a,b) => b[1]-a[1])[0];
+    if(topCat[1] > 0){
+      cards.push({tag:'above',label:topCat[0],text:`${topCat[0].charAt(0).toUpperCase()+topCat[0].slice(1)} is your largest source today (${topCat[1].toFixed(1)} kg). ${TIPS[topCat[0]]}`});
+    }
+    if(total < GLOBAL){
+      cards.push({tag:'on-track',label:'on track',text:`You are ${(GLOBAL-total).toFixed(1)} kg below the global average. Consistent low-carbon days add up meaningfully over the year.`});
+    } else {
+      cards.push({tag:'above',label:'opportunity',text:`Closing the gap to the global average would eliminate ${(total-GLOBAL).toFixed(1)} kg today.`});
+    }
+    cards.push({tag:'info',label:'did you know',text:'The Paris 1.5°C target implies each person reaches under 2.5 kg CO₂e per day by 2050.'});
+  }
+  insightsGrid.innerHTML = cards.map(c =>
+    `<div class="i-card">
+      <span class="i-tag ${c.tag}">${c.label}</span>
+      <p class="i-text">${c.text}</p>
+    </div>`
+  ).join('');
+}
+
+['transport','food','energy','shopping'].forEach(cat => {
+  const actSel = getActSel(cat);
+  const qtyInp = getQtyInp(cat);
+  const card = getCard(cat);
+
+  actSel.innerHTML = ACTS[cat].map((a,i) => `<option value="${i}">${a.name}</option>`).join('');
+
+  card.addEventListener('click', () => setActive(cat));
+  actSel.addEventListener('change', () => refreshCard(cat));
+  qtyInp.addEventListener('input', () => refreshCard(cat));
+
+  actSel.addEventListener('click', e => e.stopPropagation());
+  qtyInp.addEventListener('click', e => e.stopPropagation());
+
+  refreshCard(cat);
+});
+
+addBtn.addEventListener('click', logEntry);
+
+document.getElementById('page-date').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+setActive('transport');
+render();
+</script>
+</body>
+</html>
